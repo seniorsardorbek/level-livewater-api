@@ -22,8 +22,8 @@ export class TctService {
     const devices = await this.deviceModel.find()
     const date_in_ms = new Date().getTime()
     devices.map((dev) => {
-      const { level, volume, salinity } = generateRandomNumber(5, 59)
-      this.fetchData(dev, level, volume, salinity, date_in_ms)
+      const { level, volume,  } = generateRandomNumber(5, 59)
+      this.fetchData(dev, level, volume, date_in_ms)
     })
   }
 
@@ -31,7 +31,6 @@ export class TctService {
     dev: Device,
     level: number,
     volume: number,
-    salinity: number,
     date_in_ms: number
   ) {
     const url = 'http://94.228.112.211:2010'
@@ -40,7 +39,6 @@ export class TctService {
       data: {
         level,
         volume,
-        salinity,
         vaqt: getCurrentDateTime(date_in_ms),
       },
     }
@@ -52,7 +50,6 @@ export class TctService {
       })
       .toPromise()
       .then((res) => {
-        console.log(res);
         this.saveData(data, dev, res, date_in_ms)
       }).catch((err)=>{
         this.saveData(data, dev, err, date_in_ms)
@@ -66,14 +63,14 @@ export class TctService {
     res: AxiosResponse,
     date_in_ms: number
   ) {
-    const { level, salinity, volume } = data.data
+    const { level, volume } = data.data
     const { _id } = await this.basedataModel.create({
       date_in_ms,
       device: device._id,
       level,
-      salinity,
+      
       volume,
-      signal:  (level && salinity && volume ) ? "good" : "nosignal"  
+      signal:  (level && volume ) ? "good" : "nosignal"  
   })
     this.serverDataModel.create({
       basedata: _id,

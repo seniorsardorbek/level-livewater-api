@@ -90,6 +90,5 @@ export function getCurrentDateTime(timestamp: number) {
 export function generateRandomNumber(min: number, max: number) {
   const random = Math.floor(Math.random() * (max - min + 1)) + min
   const { level, volume } = passport.find((el) => el.level === random)
-  const salinity = gRN(1, 10)
-  return { level, volume, salinity }
+  return { level, volume }
 }
