@@ -26,4 +26,4 @@ jobs:
     - run: npm ci
     - run: npm i
     - run: npm run build 
-    - run: pm2 restart livewater
+    - run: pm2 restart livewaternosalinity
