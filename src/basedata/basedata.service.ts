@@ -3,17 +3,19 @@ import { InjectModel } from '@nestjs/mongoose'
 import { Response } from 'express'
 import { Model } from 'mongoose'
 import { ParamIdDto, QueryDto } from 'src/_shared/query.dto'
-import { PaginationResponse } from 'src/_shared/response'
+import { CustomRequest, PaginationResponse } from 'src/_shared/response'
 import { formatTimestamp } from 'src/_shared/utils'
 import * as XLSX from 'xlsx'
 import { Basedata } from './Schema/Basedatas'
 import { BasedataQueryDto } from './dto/basedata.query.dto'
 import { UpdateBasedatumDto } from './dto/update-basedatum.dto'
+import { Device } from 'src/devices/Schema/Device'
 
 @Injectable()
 export class BasedataService {
   constructor (
-    @InjectModel(Basedata.name) private basedataModel: Model<Basedata>
+    @InjectModel(Basedata.name) private basedataModel: Model<Basedata>,
+    @InjectModel(Device.name) private deviceModel: Model<Device>
   ) {}
   async create () {
     return { msg: 'Malumotlar simulation holatda' }
@@ -27,7 +29,7 @@ export class BasedataService {
   }: BasedataQueryDto): Promise<PaginationResponse<Basedata>> {
     const { limit = 10, offset = 0 } = page || {}
     const { by = 'created_at', order = 'desc' } = sort || {}
-    const { start, end, device } = filter || {}
+    const { start, end, device, region } = filter || {}
     const query: any = {}
     if (start) {
       query.date_in_ms = query.date_in_ms || {}
@@ -40,11 +42,16 @@ export class BasedataService {
     if (device) {
       query.device = device
     }
+    if (!device && region) {
+      const devices = await this.deviceModel.find({ region }).lean()
+      const devices_id = devices.map(device => device._id)
+      query.device = { $in: devices_id }
+    }
     const total = await this.basedataModel.find({ ...query }).countDocuments()
     const data = await this.basedataModel
       .find({ ...query })
       .sort({ [by]: order === 'desc' ? -1 : 1 })
-      .populate([{ path: 'device', select: 'port serie ip_address ' }])
+      .populate([{ path: 'device', select: 'serie' }])
       .limit(limit)
       .skip(limit * offset)
     return { data, limit, offset, total }
@@ -62,6 +69,45 @@ export class BasedataService {
       .skip(limit * offset)
       .exec()
     return data
+  }
+
+  // ! operator devices
+  async operatorDeviceBaseData (
+    { page, filter, sort }: BasedataQueryDto,
+    req: CustomRequest
+  ) {
+    const { limit = 10, offset = 0 } = page || {}
+    const { by = 'created_at', order = 'desc' } = sort || {}
+    const { start, end, device } = filter || {}
+    const query: any = {}
+    if (start) {
+      query.date_in_ms = query.date_in_ms || {}
+      query.date_in_ms.$gte = start
+    }
+    if (end) {
+      query.date_in_ms = query.date_in_ms || {}
+      query.date_in_ms.$lte = end
+    }
+    if (device) {
+      query.device = device
+    }
+    const owner = req.user.id
+    const devices = await this.deviceModel.find({ owner }).lean()
+    const devices_id = devices.map(device => device._id)
+    const total = await this.basedataModel
+      .find({ device: { $in: devices_id }, ...query })
+      .countDocuments()
+    const data = await this.basedataModel
+      .find({
+        device: { $in: devices_id },
+        ...query,
+      })
+      .sort({ [by]: order === 'desc' ? -1 : 1 })
+      .populate([{ path: 'device', select: 'serie' }])
+      .limit(limit)
+      .skip(limit * offset)
+      .exec()
+    return { data, limit, offset, total }
   }
 
   //! Bitta qurilma ma'lumotlarini olish uchun
@@ -112,7 +158,7 @@ export class BasedataService {
   }
 
   async xlsx ({ filter }: BasedataQueryDto, @Res() res: Response) {
-    const { start, end, device } = filter || {}
+    const { start, end, device, region } = filter || {}
     const query: any = {}
     if (start) {
       query.date_in_ms = query.date_in_ms || {}
@@ -125,12 +171,20 @@ export class BasedataService {
     if (device) {
       query.device = device
     }
-    const data = await this.basedataModel.find({ ...query }).exec() // Fetch data from MongoDB
+    if (!device && region) {
+      const devices = await this.deviceModel.find({ region }).lean()
+      const devices_id = devices.map(device => device._id)
+      query.device = { $in: devices_id }
+    }
+    const data = await this.basedataModel
+      .find({ ...query })
+      .populate([{ path: 'device', select: 'serie' }])
+      .exec()
     const jsonData = data.map((item: any) => {
       const obj = item.toObject()
-      obj._id = item._id.toString()
-      obj.device = item.device.toString()
-      obj.date_in_ms = formatTimestamp(item.date_in_ms)
+      obj._id = item?._id?.toString()
+      obj.device = item?.device?.serie
+      obj.date_in_ms = formatTimestamp(item?.date_in_ms)
       return obj
     })
     const ws = XLSX.utils.json_to_sheet(jsonData)

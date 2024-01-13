@@ -9,6 +9,8 @@ import {
   Query,
   Res,
   ValidationPipe,
+  UseGuards,
+  Req,
 } from '@nestjs/common'
 import { BasedataService } from './basedata.service'
 import { CreateBasedatumDto } from './dto/create-basedatum.dto'
@@ -23,6 +25,10 @@ import {
   ApiTags,
 } from '@nestjs/swagger'
 import { Basedata } from './Schema/Basedatas'
+import { IsLoggedIn } from 'src/auth/is-loggin.guard'
+import { HasRole } from 'src/auth/has-roles.guard'
+import { SetRoles } from 'src/auth/set-roles.decorator'
+import { CustomRequest } from 'src/_shared/response'
 
 @Controller('basedata')
 @ApiTags('Basedata')
@@ -40,8 +46,7 @@ export class BasedataController {
   // !
   @Get()
   @ApiOperation({
-    summary: 'Get all cats',
-    description: 'Returns an array of all cats.',
+    summary: 'Get all  basedata',
   })
   @ApiResponse({ status: 200, description: 'Successfully retrieved cats.' })
   findAll(@Query() query: BasedataQueryDto) {
@@ -55,6 +60,12 @@ export class BasedataController {
   @Get('last-updated')
   lastData(@Query() query: QueryDto) {
     return this.basedataService.lastData(query)
+  }
+  @SetRoles('operator')
+  @UseGuards(IsLoggedIn , HasRole)
+  @Get('operator')
+  operatorDeviceBaseData(@Query() query: BasedataQueryDto , @Req() req:  CustomRequest) {
+    return this.basedataService.operatorDeviceBaseData(query , req )
   }
   // !
   @Get('device/:id')
