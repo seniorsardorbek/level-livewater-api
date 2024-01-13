@@ -20,6 +20,7 @@ export class DevicesService {
         msg: 'Device private key  already exists!',
       })
     }
+    
     return this.deviceModel.create(createDeviceDto)
   }
 
