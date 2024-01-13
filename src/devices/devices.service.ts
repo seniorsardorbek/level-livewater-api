@@ -7,20 +7,39 @@ import { Model } from 'mongoose'
 import { ParamIdDto, QueryDto } from 'src/_shared/query.dto'
 import { CustomRequest, PaginationResponse } from 'src/_shared/response'
 import { DeviceQueryDto } from './dto/device.query.dto'
+import * as XLSX from 'xlsx';
+import { convertArrayToJSON, deleteFile, write } from 'src/_shared/utils'
 
 @Injectable()
 export class DevicesService {
+  
   constructor (@InjectModel(Device.name) private deviceModel: Model<Device>) {}
-  async create (createDeviceDto: CreateDeviceDto) {
-    const existKey = await this.deviceModel.findOne({
+  async create (createDeviceDto: CreateDeviceDto , file :Express.Multer.File) {
+    const dpkExist = await this.deviceModel.findOne({
       device_privet_key: createDeviceDto.device_privet_key,
     })
-    if (existKey) {
+    const serieExist = await this.deviceModel.findOne({
+      serie: createDeviceDto.serie,
+    })
+    if (serieExist && dpkExist) {
+      deleteFile('uploads', file.filename)
       throw new BadRequestException({
-        msg: 'Device private key  already exists!',
+        msg: 'Device private key or serie already exists!',
       })
     }
     
+    const workbook = XLSX.readFile(file.path)
+    const sheetName = workbook.SheetNames[0]
+    const sheet = workbook.Sheets[sheetName]
+    const data = XLSX.utils.sheet_to_json(sheet, { header: 1 })
+    if (data.length === 0) {
+      deleteFile('uploads', file.filename)
+      throw new BadRequestException({ msg: 'Invalid xlsx file ' })
+    }
+    write(
+      `./src/_shared/passports/${createDeviceDto.serie}.json`,
+      convertArrayToJSON(data)
+    )
     return this.deviceModel.create(createDeviceDto)
   }
 

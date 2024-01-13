@@ -1,4 +1,6 @@
-import { promises } from 'fs'
+import { promises, unlink } from 'fs'
+import { join } from 'path'
+import { passport } from '.'
 export function gRN (min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1)) + min
 }
@@ -17,8 +19,7 @@ export function formatTimestamp (timestamp: number): string {
   const formattedDate: string = date.toLocaleString('en-US', options)
   return formattedDate.replace(',', '')
 }
-const passport = []
-
+// !
 export function getCurrentDateTime (timestamp: number) {
   const date = new Date(timestamp)
   const year = date.getFullYear()
@@ -27,25 +28,44 @@ export function getCurrentDateTime (timestamp: number) {
   const hours = date.getHours().toString().padStart(2, '0')
   const minutes = date.getMinutes().toString().padStart(2, '0')
   const seconds = date.getSeconds().toString().padStart(2, '0')
-
-  // Add a separator between date and time, for example, a space
   const separator = ' '
-
   return `${year}-${month}-${day}${separator}${hours}:${minutes}:${seconds}`
 }
-export  async function getDataFromDevice (min: number, max: number) {
-  const arr = await  read('./src/_shared/json/device.json')
+
+// ! Done 
+export function convertArrayToJSON (inputArray) {
+  inputArray.shift()
+  const result: passport[] = inputArray.map(([level, volume]) => ({
+    level: parseInt(level),
+    volume: parseFloat(volume),
+  }))
+  return result
+}
+export async function getDataFromDevice (
+  min: number,
+  max: number,
+  serie: string
+) {
+  const arr = await read(`./src/_shared/passports/${serie}.json`)
   const random = Math.floor(Math.random() * (max - min + 1)) + min
-  const { level, volume } = arr.find((el) => el.level === random)
-  const salinity = gRN(1, 10)
-  return { level, volume, salinity , pressure :961.8 }
+  const { level, volume } = arr.find(el => el.level === random)
+  return { level, volume, pressure: 961.8 }
 }
 
 export async function read (dir: string) {
   const data = await promises.readFile(dir, 'utf8')
   return data ? JSON.parse(data) : []
 }
-export async function write (dir: string , data :any[] ) {
-  const strinfdata =  JSON.stringify(data)
-  promises.writeFile(dir, strinfdata, { encoding: 'utf-8' });
+export async function write (dir: string, data: any[]) {
+  const strinfdata = JSON.stringify(data)
+  promises.writeFile(dir, strinfdata, { encoding: 'utf-8' })
+}
+
+
+export function deleteFile (folder: string, name: string): void {
+  unlink(join(__dirname, '../../', folder, name), err => {
+    if (err) {
+      return
+    }
+  })
 }

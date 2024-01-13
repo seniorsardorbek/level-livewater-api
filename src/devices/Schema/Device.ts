@@ -11,7 +11,8 @@ import mongoose, { ObjectId } from 'mongoose'
 export class Device {
   @Prop({
     type: String,
-    required: true,
+    required: true, 
+    unique: true,
   })
   serie: string
 

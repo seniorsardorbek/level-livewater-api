@@ -4,11 +4,7 @@ import { InjectModel } from '@nestjs/mongoose'
 import { Cron, CronExpression } from '@nestjs/schedule'
 import { AxiosResponse } from 'axios'
 import { Model } from 'mongoose'
-import {
-   getDataFromDevice,
-  getCurrentDateTime,
-  write,
-} from 'src/_shared/utils'
+import { getDataFromDevice, getCurrentDateTime, write } from 'src/_shared/utils'
 import { Basedata } from 'src/basedata/Schema/Basedatas'
 import { Device } from 'src/devices/Schema/Device'
 import { Serverdata } from 'src/serverdata/Schema/Serverdata'
@@ -21,17 +17,17 @@ export class TctService {
     @InjectModel(Basedata.name) private basedataModel: Model<Basedata>,
     @InjectModel(Serverdata.name) private serverDataModel: Model<Serverdata>
   ) {}
-// EVERY Hour Created new Basedata
   @Cron(CronExpression.EVERY_HOUR)
   async create () {
     const devices = await this.deviceModel.find()
     const date_in_ms = new Date().getTime()
     devices.map(async dev => {
-      const { level, volume, salinity, pressure } = await getDataFromDevice(
+      const { level, volume, pressure } = await getDataFromDevice(
         5,
-        59
+        59,
+        dev.serie
       )
-      this.fetchData(dev, level, volume, salinity, date_in_ms, pressure)
+      this.fetchData(dev, level, volume, date_in_ms, pressure)
     })
   }
 
@@ -39,9 +35,8 @@ export class TctService {
     dev: Device,
     level: number,
     volume: number,
-    salinity: number,
     date_in_ms: number,
-    pressure: number,
+    pressure: number
   ) {
     const url = 'http://94.228.112.211:2010'
     const data = {
@@ -49,7 +44,6 @@ export class TctService {
       data: {
         level,
         volume,
-        salinity,
         vaqt: getCurrentDateTime(date_in_ms),
       },
     }
@@ -75,15 +69,15 @@ export class TctService {
     date_in_ms: number,
     pressure: number
   ) {
-    const { level, salinity, volume } = data.data
+    const { level, volume } = data.data
+    const signal = level && pressure  && volume ? 'good' : 'nosignal'
     const { _id } = await this.basedataModel.create({
       date_in_ms,
       device: device._id,
       level,
-      salinity,
       pressure,
       volume,
-      signal: level && salinity && volume ? 'good' : 'nosignal',
+      signal
     })
     this.serverDataModel.create({
       basedata: _id,
