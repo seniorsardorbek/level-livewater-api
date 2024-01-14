@@ -19,7 +19,6 @@ export function convertArrayToJSON (inputArray) {
     const arr = await read(`./passports/${serie}.json`)
     const random = Math.floor(Math.random() * (max - min + 1)) + min
     const { level, volume } = arr.find(el => el.level === random)
-    console.log({ level, volume, pressure: 961.8 });
     return { level, volume, pressure: 961.8 }
   }
   

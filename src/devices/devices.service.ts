@@ -25,7 +25,6 @@ export class DevicesService {
     const serieExist = await this.deviceModel.findOne({
       serie: createDeviceDto.serie,
     })
-    console.log(file);
     if (serieExist || dpkExist) {
       deleteFile('uploads', file.filename)
       throw new BadRequestException({
