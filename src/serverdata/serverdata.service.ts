@@ -8,7 +8,7 @@ import { ParamIdDto, QueryDto } from 'src/_shared/query.dto'
 import { PaginationResponse } from 'src/_shared/response'
 import { ServerdataQueryDto } from './dto/serverdata.query.dto'
 import { Response } from 'express'
-import { formatTimestamp } from 'src/_shared/utils'
+import { formatTimestamp } from 'src/_shared/utils/utils'
 import * as XLSX from 'xlsx'
 
 @Injectable()

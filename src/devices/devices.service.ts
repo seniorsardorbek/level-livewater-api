@@ -1,43 +1,47 @@
 import { BadRequestException, Injectable } from '@nestjs/common'
-import { CreateDeviceDto } from './dto/create-device.dto'
-import { UpdateDeviceDto } from './dto/update-device.dto'
 import { InjectModel } from '@nestjs/mongoose'
-import { Device } from './Schema/Device'
 import { Model } from 'mongoose'
 import { ParamIdDto, QueryDto } from 'src/_shared/query.dto'
 import { CustomRequest, PaginationResponse } from 'src/_shared/response'
+import {
+  convertArrayToJSON,
+  deleteFile,
+  write,
+  xlsxToArray
+} from 'src/_shared/utils/passport.utils'
+import { Device } from './Schema/Device'
+import { CreateDeviceDto } from './dto/create-device.dto'
 import { DeviceQueryDto } from './dto/device.query.dto'
-import * as XLSX from 'xlsx';
-import { convertArrayToJSON, deleteFile, write } from 'src/_shared/utils'
+import { UpdateDeviceDto } from './dto/update-device.dto'
 
 @Injectable()
 export class DevicesService {
-  
   constructor (@InjectModel(Device.name) private deviceModel: Model<Device>) {}
-  async create (createDeviceDto: CreateDeviceDto , file :Express.Multer.File) {
+
+  async create (createDeviceDto: CreateDeviceDto, file: Express.Multer.File) {
     const dpkExist = await this.deviceModel.findOne({
       device_privet_key: createDeviceDto.device_privet_key,
     })
     const serieExist = await this.deviceModel.findOne({
       serie: createDeviceDto.serie,
     })
-    if (serieExist && dpkExist) {
+    console.log(file);
+    if (serieExist || dpkExist) {
       deleteFile('uploads', file.filename)
       throw new BadRequestException({
-        msg: 'Device private key or serie already exists!',
+        msg: `${serieExist ? serieExist.serie : ''} ${
+          dpkExist ? dpkExist.serie : ''
+        }  already exists!`,
       })
     }
-    
-    const workbook = XLSX.readFile(file.path)
-    const sheetName = workbook.SheetNames[0]
-    const sheet = workbook.Sheets[sheetName]
-    const data = XLSX.utils.sheet_to_json(sheet, { header: 1 })
+
+    const data = xlsxToArray(file.path)
     if (data.length === 0) {
       deleteFile('uploads', file.filename)
       throw new BadRequestException({ msg: 'Invalid xlsx file ' })
     }
     write(
-      `./src/_shared/passports/${createDeviceDto.serie}.json`,
+      `./passports/${createDeviceDto.serie}.json`,
       convertArrayToJSON(data)
     )
     return this.deviceModel.create(createDeviceDto)
@@ -77,9 +81,7 @@ export class DevicesService {
     const total = await this.deviceModel.find({ owner: id }).countDocuments()
     const data = await this.deviceModel
       .find({ owner: id })
-      .populate([
-        { path: 'region', select: 'name' },
-      ])
+      .populate([{ path: 'region', select: 'name' }])
       .limit(limit)
       .skip(limit * offset)
     return { data, limit, offset, total }
@@ -92,7 +94,37 @@ export class DevicesService {
     ])
   }
 
-  async update ({ id }: ParamIdDto, updateDeviceDto: UpdateDeviceDto) {
+  async update (
+    { id }: ParamIdDto,
+    updateDeviceDto: UpdateDeviceDto,
+    file: Express.Multer.File
+  ) {
+    const exist = await this.deviceModel.findById(id)
+    const dpkExist = await this.deviceModel.findOne({
+      device_privet_key: updateDeviceDto.device_privet_key,
+    })
+    const serieExist = await this.deviceModel.findOne({
+      serie: updateDeviceDto.serie,
+    })
+    if (serieExist && dpkExist) {
+      deleteFile('uploads', file.filename)
+      throw new BadRequestException({
+        msg: 'Device private key or serie already exists!',
+      })
+    }
+    const data = xlsxToArray(file.path)
+    if (data.length === 0) {
+      deleteFile('uploads', file.filename)
+      throw new BadRequestException({ msg: 'Invalid xlsx file ' })
+    }
+    if (!exist) {
+      deleteFile('uploads', file.filename)
+      throw new BadRequestException({ msg: 'Device does not exist!' })
+    }
+    write(
+      `./src/_shared/passports/${exist.serie}.json`,
+      convertArrayToJSON(data)
+    )
     const updated = await this.deviceModel.findByIdAndUpdate(
       id,
       updateDeviceDto,
@@ -106,8 +138,10 @@ export class DevicesService {
   }
 
   async remove ({ id }: ParamIdDto) {
-    const removed = await this.deviceModel.findByIdAndDelete(id, { new: true })
-    if (removed) {
+    const removed = await this.deviceModel.findById(id)
+   deleteFile('passports',`${removed.serie}.json`)
+   const deleted = await this.deviceModel.findByIdAndDelete(id)
+    if (deleted) {
       return { msg: "Qurilma o'chirildi." }
     } else {
       throw new BadRequestException({ msg: 'Qurilmani ochirishda xatolik' })

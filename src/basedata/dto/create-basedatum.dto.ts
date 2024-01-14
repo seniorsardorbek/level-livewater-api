@@ -36,13 +36,6 @@ export class CreateBasedatumDto {
   @IsNumber()
   pressure: number
 
-  @ApiProperty({
-    title: 'Salinity number',
-    example: 12,
-  })
-  @IsNotEmpty()
-  @IsNumber()
-  salinity: number
 
   @ApiProperty({
     title: 'Timestamp',

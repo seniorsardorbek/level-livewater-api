@@ -11,7 +11,7 @@ import {
   UploadedFile,
   UseGuards,
   UseInterceptors,
-  ValidationPipe
+  ValidationPipe,
 } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { ApiTags } from '@nestjs/swagger'
@@ -34,7 +34,7 @@ export class DevicesController {
     @Body() createDeviceDto: CreateDeviceDto,
     @UploadedFile() file: Express.Multer.File
   ) {
-    return this.devicesService.create(createDeviceDto , file)
+    return this.devicesService.create(createDeviceDto, file)
   }
 
   @Get()
@@ -58,11 +58,13 @@ export class DevicesController {
   }
 
   @Patch(':id')
+  @UseInterceptors(FileInterceptor('file', multerOptions))
   update (
     @Param(ValidationPipe) id: ParamIdDto,
-    @Body() updateDeviceDto: UpdateDeviceDto
+    @Body() updateDeviceDto: UpdateDeviceDto,
+    @UploadedFile() file: Express.Multer.File
   ) {
-    return this.devicesService.update(id, updateDeviceDto)
+    return this.devicesService.update(id, updateDeviceDto, file)
   }
 
   @Delete(':id')

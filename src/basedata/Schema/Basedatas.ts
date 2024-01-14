@@ -29,11 +29,6 @@ export class Basedata {
     type: Number,
     required: true,
   })
-  salinity: number
-  @Prop({
-    type: Number,
-    required: true,
-  })
   date_in_ms: number
   @Prop({
     type: String,
@@ -50,6 +45,3 @@ export class Basedata {
   device: ObjectId
 }
 export const BasedataSchema = SchemaFactory.createForClass(Basedata)
-
-// BasedataSchema.set('toObject', { virtuals: true });
-// BasedataSchema.set('toJSON', { virtuals: true });
