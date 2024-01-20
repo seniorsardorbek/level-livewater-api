@@ -12,13 +12,11 @@ export function convertArrayToJSON (inputArray) {
     return result
   }
   export async function getDataFromDevice (
-    min: number,
-    max: number,
+    deviceLevel :number ,  
     serie: string
   ) {
     const arr = await read(`./passports/${serie}.json`)
-    const random = Math.floor(Math.random() * (max - min + 1)) + min
-    const { level, volume } = arr.find(el => el.level === random)
+    const { level, volume } = arr.find(el => el.level === deviceLevel)
     return { level, volume, pressure: 961.8 }
   }
   

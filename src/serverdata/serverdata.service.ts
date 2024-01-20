@@ -1,24 +1,42 @@
-import { BadRequestException, Injectable, Res } from '@nestjs/common'
+import { HttpService } from '@nestjs/axios'
+import { BadRequestException, Injectable } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
+import { Cron, CronExpression } from '@nestjs/schedule'
 import { Model } from 'mongoose'
-import { Serverdata } from './Schema/Serverdata'
-import { CreateServerdatumDto } from './dto/create-serverdatum.dto'
-import { UpdateServerdatumDto } from './dto/update-serverdatum.dto'
+import { baseDataFace, sendedDataFace } from 'src/_shared'
 import { ParamIdDto, QueryDto } from 'src/_shared/query.dto'
 import { PaginationResponse } from 'src/_shared/response'
-import { ServerdataQueryDto } from './dto/serverdata.query.dto'
-import { Response } from 'express'
-import { formatTimestamp } from 'src/_shared/utils/utils'
-import * as XLSX from 'xlsx'
+import { Basedata } from 'src/basedata/Schema/Basedatas'
+import { Device } from 'src/devices/Schema/Device'
+import { Serverdata } from './Schema/Serverdata'
+import { UpdateServerdatumDto } from './dto/update-serverdatum.dto'
+import { getCurrentDateTime } from 'src/_shared/utils/utils'
+import { AxiosResponse } from 'axios';
 
 @Injectable()
 export class ServerdataService {
   constructor (
-    @InjectModel(Serverdata.name)
-    private readonly serverdataModel: Model<Serverdata>
+    private httpService: HttpService,
+    @InjectModel(Serverdata.name) private readonly serverdataModel: Model<Serverdata> ,
+    @InjectModel(Basedata.name) private readonly basedataModel: Model<Basedata>,
+    @InjectModel(Device.name) private readonly deviceModel: Model<Device>
   ) {}
-  create (createServerdatumDto: CreateServerdatumDto) {
-    return this.serverdataModel.create(createServerdatumDto)
+  @Cron(CronExpression.EVERY_HOUR)
+ async  create () {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
+    const lastAdded  =  await this.basedataModel.find({created_at :{ $gte: oneHourAgo }}).lean()
+    const devices =  await this.deviceModel.find().lean()
+    const date_in_ms = new Date().getTime()
+    devices.map(async (dev) => {
+      const basedata : Basedata =  lastAdded.reverse().find((basedata) => basedata.device.toString() === dev._id.toString())
+      if(basedata){
+          this.fetchData(dev , basedata , date_in_ms )
+      }else{
+        this.basedataModel.create({volume :0 ,level:0 ,pressure : 0 , date_in_ms  , device:dev._id ,signal :"nosignal" })
+      }
+
+    })
+    return {}
   }
 
   async findAll ({ page }: QueryDto): Promise<PaginationResponse<Serverdata>> {
@@ -79,38 +97,43 @@ export class ServerdataService {
     }
   }
 
-  async xlsx ({ filter }: ServerdataQueryDto, @Res() res: Response) {
-    const { start, end, device } = filter || {}
-    const query: any = {}
-    if (start) {
-      query.date_in_ms = query.date_in_ms || {}
-      query.date_in_ms.$gte = start
+  fetchData (dev: Device, basedata : any , date_in_ms : number ) {
+    console.log(basedata);
+    const {level , volume } = basedata
+    const url = 'http://94.228.112.211:2010'
+    
+    const data : sendedDataFace = {
+      code: dev.device_privet_key,
+      data: {
+        level,
+        volume,
+        vaqt: getCurrentDateTime(date_in_ms),
+      },
     }
-
-    if (end) {
-      query.date_in_ms = query.date_in_ms || {}
-      query.date_in_ms.$lte = end
-    }
-    if (device) {
-      query.device = device
-    }
-    const data = await this.serverdataModel.find({ ...query }).exec() 
-    const jsonData = data.map((item: any) => {
-      const obj = item.toObject()
-      obj._id = item._id.toString()
-      obj.device = item.device.toString()
-      obj.date_in_ms = formatTimestamp(item.date_in_ms)
-      return obj
-    })
-    const ws = XLSX.utils.json_to_sheet(jsonData)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'DataSheet')
-    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' })
-    res.setHeader('Content-Disposition', 'attachment; filename=basedata.xlsx')
-    res.setHeader(
-      'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    )
-    res.send(excelBuffer)
+    this.httpService.post(url, data, {headers: {'Content-Type': 'application/json'}})
+      .toPromise()
+      .then(res => {
+        this.saveData( basedata._id,data , res , date_in_ms )
+      })
+      .catch(err => {
+        this.saveData( basedata._id,data , err , date_in_ms )
+      })
   }
+
+  async saveData (
+    basedataId : string, 
+    data: sendedDataFace,
+    res: AxiosResponse,
+    date_in_ms: number,
+  ) {
+   
+    this.serverdataModel.create({
+      basedata: basedataId,
+      message: res.data?.message || 'Malumotlarni serverga yuborishda server tomondan xatolik',
+      device_privet_key: data.code,
+      send_data_in_ms: date_in_ms,
+      status_code: res?.data?.status === 'success' ? 200 : res.data?.status === 'error' ? 404 : 500,
+    })
+  }
+
 }

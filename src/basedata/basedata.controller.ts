@@ -41,7 +41,7 @@ export class BasedataController {
     type: Basedata,
   })
   create(@Body() createBasedatumDto: CreateBasedatumDto) {
-    return this.basedataService.create()
+    return this.basedataService.create(createBasedatumDto)
   }
   // !
   @Get()

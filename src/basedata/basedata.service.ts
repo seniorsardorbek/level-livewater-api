@@ -1,4 +1,4 @@
-import { Injectable, Res } from '@nestjs/common'
+import { BadRequestException, Injectable, Res } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { Response } from 'express'
 import { Model } from 'mongoose'
@@ -10,6 +10,8 @@ import { Basedata } from './Schema/Basedatas'
 import { BasedataQueryDto } from './dto/basedata.query.dto'
 import { UpdateBasedatumDto } from './dto/update-basedatum.dto'
 import { Device } from 'src/devices/Schema/Device'
+import { CreateBasedatumDto } from './dto/create-basedatum.dto'
+import { getDataFromDevice } from 'src/_shared/utils/passport.utils'
 
 @Injectable()
 export class BasedataService {
@@ -17,9 +19,33 @@ export class BasedataService {
     @InjectModel(Basedata.name) private basedataModel: Model<Basedata>,
     @InjectModel(Device.name) private deviceModel: Model<Device>
   ) {}
-  async create () {
-    return { msg: 'Malumotlar simulation holatda' }
+  async create (createBasedata: CreateBasedatumDto) {
+    const {_id} =  await this.deviceModel.findOne({
+      serie: createBasedata.serie,
+    })
+    if (!_id) {
+      throw new BadRequestException({ msg: 'Device not found!' })
+    }
+    const deviceLevel = createBasedata.level > 59 ? 59  : createBasedata.level < 5 ? 5 : createBasedata.level
+    console.log(deviceLevel);
+    const date_in_ms = new Date().getTime()
+    const signal  =  deviceLevel ? "good" :"nosignal"
+    const { level, volume, pressure } = await getDataFromDevice(
+      deviceLevel,
+      createBasedata.serie ,
+    )
+    this.basedataModel.create({ date_in_ms , signal , level ,device :_id , volume ,pressure  })
+   return  { msg: 'Malumot saqlandi!' }
   }
+
+
+
+
+
+
+
+
+
 
   // ! Barcha ma'lumotlarni olish uchun
   async findAll ({
@@ -157,7 +183,7 @@ export class BasedataService {
     }
   }
 
-  async xlsx ({ filter , page}: BasedataQueryDto, @Res() res: Response) {
+  async xlsx ({ filter, page }: BasedataQueryDto, @Res() res: Response) {
     const { start, end, device, region } = filter || {}
     const { limit = 1000 } = page || {}
     const query: any = {}
@@ -179,7 +205,7 @@ export class BasedataService {
     }
     const data = await this.basedataModel
       .find({ ...query })
-      .sort({ created_at : -1 })
+      .sort({ created_at: -1 })
       .populate([{ path: 'device', select: 'serie' }])
       .limit(limit)
       .exec()
