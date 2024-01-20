@@ -11,9 +11,18 @@ import config from './_shared/config'
 import { AuthModule } from './auth/auth.module'
 import { ScheduleModule } from '@nestjs/schedule'
 import { TctModule } from './tct/tct.module'
+import { ClientsModule, Transport } from '@nestjs/microservices'
+import { TcpService } from './tcp.service'
 
 @Module({
   imports: [
+    ClientsModule.register(
+    [{
+      name:"COMMUNACATION" ,
+      transport :Transport.TCP
+    }
+    ]
+    ),
     MongooseModule.forRoot(`${config.db.host}/${config.db.name}`),
     UsersModule,
     RegionsModule,
@@ -25,6 +34,6 @@ import { TctModule } from './tct/tct.module'
     TctModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService , TcpService],
 })
 export class AppModule {}

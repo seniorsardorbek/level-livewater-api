@@ -23,17 +23,7 @@ export class Device {
   })
   device_privet_key: string
 
-  @Prop({
-    type: String,
-    required: true,
-  })
-  ip_address: string
 
-  @Prop({
-    type: Number,
-    required: true,
-  })
-  port: number
 
   @Prop({
     type: Number,

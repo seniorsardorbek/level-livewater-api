@@ -21,23 +21,6 @@ export class CreateDeviceDto {
   device_privet_key: string
 
   @ApiProperty({
-    title: 'ipAdress string',
-    example: '127.0.0.1',
-  })
-  @IsNotEmpty()
-  @IsString()
-  ip_address: string
-
-  @ApiProperty({
-    title: 'port',
-    example: 4000,
-  })
-  @IsNotEmpty()
-  @Transform(({ value }) => Number(value))
-  @IsNumber()
-  port: number
-
-  @ApiProperty({
     title: 'lat',
     example: '53.6881488',
   })

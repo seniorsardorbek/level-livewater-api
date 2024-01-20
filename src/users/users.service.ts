@@ -35,7 +35,7 @@ export class UsersService {
 
     const data = await this.userModel
       .find({ ...search })
-      .populate([{ path: 'devices', select: 'port serie ip_address -owner' }])
+      .populate([{ path: 'devices', select: 'serie -owner' }])
       .select('-password')
       .limit(limit)
       .skip(limit * offset)
@@ -45,7 +45,7 @@ export class UsersService {
   findOne({ id }: ParamIdDto) {
     const user = this.userModel
       .findById(id)
-      .populate([{ path: 'devices', select: 'port serie ip_address -owner' }])
+      .populate([{ path: 'devices', select: 'serie -owner' }])
       .select('-password')
     return user
   }

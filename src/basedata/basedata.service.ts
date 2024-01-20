@@ -157,8 +157,9 @@ export class BasedataService {
     }
   }
 
-  async xlsx ({ filter }: BasedataQueryDto, @Res() res: Response) {
+  async xlsx ({ filter , page}: BasedataQueryDto, @Res() res: Response) {
     const { start, end, device, region } = filter || {}
+    const { limit = 1000 } = page || {}
     const query: any = {}
     if (start) {
       query.date_in_ms = query.date_in_ms || {}
@@ -178,7 +179,9 @@ export class BasedataService {
     }
     const data = await this.basedataModel
       .find({ ...query })
+      .sort({ created_at : -1 })
       .populate([{ path: 'device', select: 'serie' }])
+      .limit(limit)
       .exec()
     const jsonData = data.map((item: any) => {
       const obj = item.toObject()

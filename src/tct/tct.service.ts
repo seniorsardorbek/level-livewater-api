@@ -3,7 +3,9 @@ import { Injectable } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { Cron, CronExpression } from '@nestjs/schedule'
 import { AxiosResponse } from 'axios'
+import { createServer } from 'net'
 import { Model } from 'mongoose'
+import { Socket } from 'net'
 import { getDataFromDevice } from 'src/_shared/utils/passport.utils'
 import { getCurrentDateTime } from 'src/_shared/utils/utils'
 import { Basedata } from 'src/basedata/Schema/Basedatas'
@@ -12,12 +14,40 @@ import { Serverdata } from 'src/serverdata/Schema/Serverdata'
 
 @Injectable()
 export class TctService {
+  
   constructor (
     private httpService: HttpService,
     @InjectModel(Device.name) private deviceModel: Model<Device>,
     @InjectModel(Basedata.name) private basedataModel: Model<Basedata>,
     @InjectModel(Serverdata.name) private serverDataModel: Model<Serverdata>
-  ) {}
+    
+  ) {
+   
+      const server = createServer((socket: Socket) => {
+        const clientIpAddress = socket.remoteAddress;
+        socket.write('Hey, Bro! You connected to TCP server');
+  
+        socket.on('close', () => {
+  
+          // sendMessage(this.targetChatId, 'TCP client disconnected');
+        });
+  
+        socket.resume
+        
+        socket.on('data', (data) => {
+           console.log(data.byteLength);
+          const sliced = data.slice(3, 5);
+          const message = sliced.toString('utf-8');
+          // sendMessage(this.targetChatId, `msg: ${message}, ip: ${clientIpAddress}`);
+        });
+      });
+  
+      server.listen(8000);
+  
+      process.once('SIGINT', () => server.close());
+      process.once('SIGTERM', () => server.close());
+    
+  }
   @Cron(CronExpression.EVERY_HOUR)
   async create () {
     const devices = await this.deviceModel.find()
