@@ -20,10 +20,10 @@ export class BasedataService {
     @InjectModel(Device.name) private deviceModel: Model<Device>
   ) {}
   async create (createBasedata: CreateBasedatumDto) {
-    const {_id} =  await this.deviceModel.findOne({
+    const device =  await this.deviceModel.findOne({
       serie: createBasedata.serie,
     })
-    if (!_id) {
+    if (!device) {
       throw new BadRequestException({ msg: 'Device not found!' })
     }
     const deviceLevel = createBasedata.level > 59 ? 59  : createBasedata.level < 5 ? 5 : createBasedata.level
@@ -34,7 +34,7 @@ export class BasedataService {
       deviceLevel,
       createBasedata.serie ,
     )
-    this.basedataModel.create({ date_in_ms , signal , level ,device :_id , volume ,pressure  })
+    this.basedataModel.create({ date_in_ms , signal , level ,device :device._id , volume ,pressure  })
    return  { msg: 'Malumot saqlandi!' }
   }
 
