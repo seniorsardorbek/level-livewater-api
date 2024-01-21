@@ -27,14 +27,13 @@ export class BasedataService {
       throw new BadRequestException({ msg: 'Device not found!' })
     }
     const deviceLevel = createBasedata.level > 59 ? 59  : createBasedata.level < 5 ? 5 : createBasedata.level
-    console.log(deviceLevel);
     const date_in_ms = new Date().getTime()
     const signal  =  deviceLevel ? "good" :"nosignal"
-    const { level, volume, pressure } = await getDataFromDevice(
+    const {  volume, pressure } = await getDataFromDevice(
       deviceLevel,
       createBasedata.serie ,
     )
-    this.basedataModel.create({ date_in_ms , signal , level ,device :device._id , volume ,pressure  })
+    this.basedataModel.create({ date_in_ms , signal , level:createBasedata.level ,device :device._id , volume ,pressure  })
    return  { msg: 'Malumot saqlandi!' }
   }
 
