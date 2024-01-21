@@ -23,7 +23,7 @@ export class ServerdataService {
   ) {}
   @Cron(CronExpression.EVERY_HOUR)
  async  create () {
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
+    const oneHourAgo = new Date(Date.now() - 40 * 60 * 1000)
     const lastAdded  =  await this.basedataModel.find({created_at :{ $gte: oneHourAgo }}).lean()
     const devices =  await this.deviceModel.find().lean()
     const date_in_ms = new Date().getTime()
