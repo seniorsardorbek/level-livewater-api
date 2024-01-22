@@ -38,6 +38,7 @@ export function convertArrayToJSON (inputArray) {
   }
 
   export function xlsxToArray (filePath: string) {
+    if(!filePath) return []
     const workbook = XLSX.readFile(filePath)
     const sheetName = workbook.SheetNames[0]
     const sheet = workbook.Sheets[sheetName]

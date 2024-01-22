@@ -99,31 +99,33 @@ export class DevicesService {
     file: Express.Multer.File
   ) {
     const exist = await this.deviceModel.findById(id)
+    if (!exist) {
+      deleteFile('uploads', file?.filename)
+      throw new BadRequestException({ msg: 'Device does not exist!' })
+    }
     const dpkExist = await this.deviceModel.findOne({
-      device_privet_key: updateDeviceDto.device_privet_key,
+      device_privet_key: updateDeviceDto.device_privet_key, _id : {$ne :id}
     })
     const serieExist = await this.deviceModel.findOne({
-      serie: updateDeviceDto.serie,
+      serie: updateDeviceDto.serie, _id : {$ne :id}
     })
     if (serieExist && dpkExist) {
-      deleteFile('uploads', file.filename)
+      file?.filename &&  deleteFile('uploads', file.filename)
       throw new BadRequestException({
         msg: 'Device private key or serie already exists!',
       })
     }
-    const data = xlsxToArray(file.path)
-    if (data.length === 0) {
-      deleteFile('uploads', file.filename)
+    const data = xlsxToArray(file?.path ) 
+    if (data.length === 0 && file?.path) {
+      file?.filename &&  deleteFile('uploads', file?.filename)
       throw new BadRequestException({ msg: 'Invalid xlsx file ' })
     }
-    if (!exist) {
-      deleteFile('uploads', file.filename)
-      throw new BadRequestException({ msg: 'Device does not exist!' })
-    }
-    write(
-      `./src/_shared/passports/${exist.serie}.json`,
+  
+    file?.filename &&  write(
+      `./passports/${updateDeviceDto.serie||exist.serie}.json`,
       convertArrayToJSON(data)
     )
+    deleteFile('passports',`${exist.serie}.json`)
     const updated = await this.deviceModel.findByIdAndUpdate(
       id,
       updateDeviceDto,
