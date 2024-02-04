@@ -6,7 +6,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    cors: { origin: '*', credentials: true },
+    cors: { origin: '*', credentials: true ,  },
   })
   app.useGlobalPipes(
     new ValidationPipe({
@@ -18,7 +18,7 @@ async function bootstrap() {
   const swaggerc = new DocumentBuilder()
     .setTitle('Live Water (level)')
     .setDescription('Documentation for live water')
-    .setVersion('1.0')
+    .setVersion('1.2')
     .build()
   const document = SwaggerModule.createDocument(app, swaggerc)
   SwaggerModule.setup('api', app, document)

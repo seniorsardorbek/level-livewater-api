@@ -11,7 +11,7 @@ import mongoose, { ObjectId } from 'mongoose'
 export class Device {
   @Prop({
     type: String,
-    required: true, 
+    required: true,
     unique: true,
   })
   serie: string
@@ -19,11 +19,15 @@ export class Device {
   @Prop({
     type: String,
     required: true,
+  })
+  name: string
+
+  @Prop({
+    type: String,
+    required: true,
     unique: true,
   })
   device_privet_key: string
-
-
 
   @Prop({
     type: Number,

@@ -7,7 +7,7 @@ import {
   convertArrayToJSON,
   deleteFile,
   write,
-  xlsxToArray
+  xlsxToArray,
 } from 'src/_shared/utils/passport.utils'
 import { Device } from './Schema/Device'
 import { CreateDeviceDto } from './dto/create-device.dto'
@@ -19,78 +19,104 @@ export class DevicesService {
   constructor (@InjectModel(Device.name) private deviceModel: Model<Device>) {}
 
   async create (createDeviceDto: CreateDeviceDto, file: Express.Multer.File) {
-    const dpkExist = await this.deviceModel.findOne({
-      device_privet_key: createDeviceDto.device_privet_key,
-    })
-    const serieExist = await this.deviceModel.findOne({
-      serie: createDeviceDto.serie,
-    })
-    if (serieExist || dpkExist) {
-      deleteFile('uploads', file.filename)
+    try {
+      const dpkExist = await this.deviceModel.findOne({
+        device_privet_key: createDeviceDto.device_privet_key,
+      })
+      const serieExist = await this.deviceModel.findOne({
+        serie: createDeviceDto.serie,
+      })
+      if (serieExist || dpkExist) {
+        deleteFile('uploads', file.filename)
+        throw new BadRequestException({
+          msg: `${serieExist ? serieExist.serie : ''} ${
+            dpkExist ? dpkExist.serie : ''
+          }  already exists!`,
+        })
+      }
+
+      const data = xlsxToArray(file.path)
+      if (data.length === 0) {
+        deleteFile('uploads', file.filename)
+        throw new BadRequestException({ msg: 'Invalid xlsx file ' })
+      }
+      write(
+        `./passports/${createDeviceDto.serie}.json`,
+        convertArrayToJSON(data)
+      )
+      return this.deviceModel.create(createDeviceDto)
+    } catch (error) {
       throw new BadRequestException({
-        msg: `${serieExist ? serieExist.serie : ''} ${
-          dpkExist ? dpkExist.serie : ''
-        }  already exists!`,
+        msg: "Keyinroq urinib ko'ring...",
+        error,
       })
     }
-
-    const data = xlsxToArray(file.path)
-    if (data.length === 0) {
-      deleteFile('uploads', file.filename)
-      throw new BadRequestException({ msg: 'Invalid xlsx file ' })
-    }
-    write(
-      `./passports/${createDeviceDto.serie}.json`,
-      convertArrayToJSON(data)
-    )
-    return this.deviceModel.create(createDeviceDto)
   }
 
   async findAll ({ page }: QueryDto): Promise<PaginationResponse<Device>> {
-    const { limit = 10, offset = 0 } = page || {}
+    try {
+      const { limit = 10, offset = 0 } = page || {}
 
-    const total = await this.deviceModel.find().countDocuments()
+      const total = await this.deviceModel.find().countDocuments()
 
-    const data = await this.deviceModel
-      .find()
-      .populate([
-        { path: 'region', select: 'name' },
-        { path: 'owner', select: 'first_name last_name' },
-      ])
-      .limit(limit)
-      .skip(limit * offset)
+      const data = await this.deviceModel
+        .find()
+        .populate([
+          { path: 'region', select: 'name' },
+          { path: 'owner', select: 'first_name last_name' },
+        ])
+        .limit(limit)
+        .skip(limit * offset)
 
-    return { data, limit, offset, total }
+      return { data, limit, offset, total }
+    } catch (error) {
+      throw new BadRequestException({
+        msg: "Keyinroq urinib ko'ring...",
+        error,
+      })
+    }
   }
 
   async regionAll ({
     filter,
   }: DeviceQueryDto): Promise<PaginationResponse<Device>> {
-    const total = await this.deviceModel.find().countDocuments()
-    const data = await this.deviceModel.find(filter)
-    return { data, limit: 0, offset: 0, total }
+    try {
+      const total = await this.deviceModel.find().countDocuments()
+      const data = await this.deviceModel.find(filter)
+      return { data, limit: 0, offset: 0, total }
+    } catch (error) {
+      throw new BadRequestException({ msg: "Keyinroq urinib ko'ring..." , error })
+    }
   }
 
   async oneUserDevices (
     req: CustomRequest,
     { page }: QueryDto
   ): Promise<PaginationResponse<Device>> {
-    const id = req.user.id
-    const { limit = 10, offset = 0 } = page || {}
-    const total = await this.deviceModel.find({ owner: id }).countDocuments()
-    const data = await this.deviceModel
-      .find({ owner: id })
-      .populate([{ path: 'region', select: 'name' }])
-      .limit(limit)
-      .skip(limit * offset)
-    return { data, limit, offset, total }
+    try {
+      const id = req.user.id
+      const { limit = 10, offset = 0 } = page || {}
+      const total = await this.deviceModel.find({ owner: id }).countDocuments()
+      const data = await this.deviceModel
+        .find({ owner: id })
+        .populate([{ path: 'region', select: 'name' }])
+        .limit(limit)
+        .skip(limit * offset)
+      return { data, limit, offset, total }
+    } catch (error) {
+      throw new BadRequestException({ msg: "Keyinroq urinib ko'ring..." , error })
+    }
   }
 
   findOne ({ id }: ParamIdDto) {
-    return this.deviceModel.findById(id).populate([
-      { path: 'region', select: 'name' },
-      { path: 'owner', select: 'username first_name last_name' },
-    ])
+    try {
+      return this.deviceModel.findById(id).populate([
+        { path: 'region', select: 'name' },
+        { path: 'owner', select: 'username first_name last_name' },
+      ])
+    } catch (error) {
+      throw new BadRequestException({ msg: "Keyinroq urinib ko'ring..." , error })
+    }
   }
 
   async update (
@@ -98,34 +124,38 @@ export class DevicesService {
     updateDeviceDto: UpdateDeviceDto,
     file: Express.Multer.File
   ) {
-    const exist = await this.deviceModel.findById(id)
+    try {
+      const exist = await this.deviceModel.findById(id)
     if (!exist) {
       deleteFile('uploads', file?.filename)
       throw new BadRequestException({ msg: 'Device does not exist!' })
     }
     const dpkExist = await this.deviceModel.findOne({
-      device_privet_key: updateDeviceDto.device_privet_key, _id : {$ne :id}
+      device_privet_key: updateDeviceDto.device_privet_key,
+      _id: { $ne: id },
     })
     const serieExist = await this.deviceModel.findOne({
-      serie: updateDeviceDto.serie, _id : {$ne :id}
+      serie: updateDeviceDto.serie,
+      _id: { $ne: id },
     })
     if (serieExist && dpkExist) {
-      file?.filename &&  deleteFile('uploads', file.filename)
+      file?.filename && deleteFile('uploads', file.filename)
       throw new BadRequestException({
         msg: 'Device private key or serie already exists!',
       })
     }
-    const data = xlsxToArray(file?.path ) 
+    const data = xlsxToArray(file?.path)
     if (data.length === 0 && file?.path) {
-      file?.filename &&  deleteFile('uploads', file?.filename)
+      file?.filename && deleteFile('uploads', file?.filename)
       throw new BadRequestException({ msg: 'Invalid xlsx file ' })
     }
-  
-    file?.filename &&  write(
-      `./passports/${updateDeviceDto.serie||exist.serie}.json`,
-      convertArrayToJSON(data)
-    )
-    deleteFile('passports',`${exist.serie}.json`)
+
+    file?.filename &&
+      write(
+        `./passports/${updateDeviceDto.serie || exist.serie}.json`,
+        convertArrayToJSON(data)
+      )
+    deleteFile('passports', `${exist.serie}.json`)
     const updated = await this.deviceModel.findByIdAndUpdate(
       id,
       updateDeviceDto,
@@ -136,16 +166,24 @@ export class DevicesService {
     } else {
       throw new BadRequestException({ msg: 'Qurilmani yangilashda xatolik' })
     }
+    } catch (error) {
+      throw new BadRequestException({ msg: "Keyinroq urinib ko'ring..." , error })
+    }
+    
   }
 
   async remove ({ id }: ParamIdDto) {
-    const removed = await this.deviceModel.findById(id)
-   deleteFile('passports',`${removed.serie}.json`)
-   const deleted = await this.deviceModel.findByIdAndDelete(id)
-    if (deleted) {
-      return { msg: "Qurilma o'chirildi." }
-    } else {
-      throw new BadRequestException({ msg: 'Qurilmani ochirishda xatolik' })
+    try {
+      const removed = await this.deviceModel.findById(id)
+      deleteFile('passports', `${removed.serie}.json`)
+      const deleted = await this.deviceModel.findByIdAndDelete(id)
+      if (deleted) {
+        return { msg: "Qurilma o'chirildi." }
+      } else {
+        throw new BadRequestException({ msg: 'Qurilmani ochirishda xatolik' })
+      }
+    } catch (error) {
+      throw new BadRequestException({ msg: "Keyinroq urinib ko'ring..." , error })
     }
   }
 }
