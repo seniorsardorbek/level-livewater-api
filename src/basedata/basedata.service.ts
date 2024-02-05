@@ -110,7 +110,36 @@ export class BasedataService {
       let uniqueSeriesMap = {}
 
       data.forEach(item => {
-        const serie = item.device
+        const serie = item.serie
+        uniqueSeriesMap[serie] = item
+      })
+
+      let uniqueSeriesArray = Object.values(uniqueSeriesMap)
+      return uniqueSeriesArray
+    } catch (error) {
+      throw new BadRequestException({ msg: "Keyinroq urinib ko'ring..." })
+    }
+  }
+  async lastDataOperator (req: CustomRequest) {
+    try {
+      const now = new Date() // current time in local timezone
+      const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000) // time one hour ago
+
+      const timestampOneHourAgo = oneHourAgo.getTime() // timestamp of one hour ago in milliseconds
+      const owner = req.user.id
+      const devices = await this.deviceModel.find({ owner }).lean()
+      const devices_id = devices.map(device => device._id)
+      const data: DataItem[] = await this.basedataModel
+        .find({
+          device: { $in: devices_id } ,
+          date_in_ms: { $gte: timestampOneHourAgo },
+        })
+        .populate([{ path: 'device', select: 'serie name' }])
+        .lean()
+      let uniqueSeriesMap = {}
+
+      data.forEach(item => {
+        const serie = item.serie
         uniqueSeriesMap[serie] = item
       })
 

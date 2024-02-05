@@ -67,6 +67,12 @@ export class BasedataController {
   operatorDeviceBaseData(@Query() query: BasedataQueryDto , @Req() req:  CustomRequest) {
     return this.basedataService.operatorDeviceBaseData(query , req )
   }
+  @SetRoles('operator')
+  @UseGuards(IsLoggedIn , HasRole)
+  @Get('operator')
+  lastDataOperator(@Req() req:  CustomRequest) {
+    return this.basedataService.lastDataOperator(req )
+  }
   // !
   @Get('device/:id')
   @ApiOperation({
