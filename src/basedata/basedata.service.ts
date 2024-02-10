@@ -2,17 +2,16 @@ import { BadRequestException, Injectable, Res } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { Response } from 'express'
 import { Model } from 'mongoose'
+import { DataItem } from 'src/_shared'
 import { ParamIdDto, QueryDto } from 'src/_shared/query.dto'
 import { CustomRequest, PaginationResponse } from 'src/_shared/response'
+import { getDataFromDevice } from 'src/_shared/utils/passport.utils'
 import { formatTimestamp } from 'src/_shared/utils/utils'
+import { Device } from 'src/devices/Schema/Device'
 import * as XLSX from 'xlsx'
 import { Basedata } from './Schema/Basedatas'
 import { BasedataQueryDto } from './dto/basedata.query.dto'
-import { UpdateBasedatumDto } from './dto/update-basedatum.dto'
-import { Device } from 'src/devices/Schema/Device'
 import { CreateBasedatumDto } from './dto/create-basedatum.dto'
-import { getDataFromDevice } from 'src/_shared/utils/passport.utils'
-import { DataItem } from 'src/_shared'
 
 @Injectable()
 export class BasedataService {
@@ -253,21 +252,6 @@ export class BasedataService {
 
 
 
-  //! Bitta mal'lumotni o'chirish uchun
-  async remove ({ id }: ParamIdDto) {
-    try {
-      const removed = await this.basedataModel.findByIdAndDelete(id, {
-        new: true,
-      })
-      if (removed) {
-        return { msg: "Muvaffaqqiyatli o'chirildi!" }
-      } else {
-        return { msg: "O'chirilsihda xatolik!" }
-      }
-    } catch (error) {
-      throw new BadRequestException({ msg: "Keyinroq urinib ko'ring..." })
-    }
-  }
 
   async xlsx ({ filter, page }: BasedataQueryDto, @Res() res: Response) {
     try {
@@ -300,6 +284,7 @@ export class BasedataService {
         const obj = item.toObject()
         obj._id = item?._id?.toString()
         obj.device = item?.device?.serie
+        obj.pressure = item.pressure || 961.8
         obj.date_in_ms = formatTimestamp(item?.date_in_ms)
         return obj
       })
