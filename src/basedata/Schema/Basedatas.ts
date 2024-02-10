@@ -5,8 +5,8 @@ import { Status } from 'src/_shared/enums'
 @Schema({
   versionKey: false,
   timestamps: {
-    createdAt: 'created_at',
-    updatedAt: 'updated_at',
+    createdAt: false,
+    updatedAt: false,
   },
 })
 export class Basedata {
@@ -20,11 +20,6 @@ export class Basedata {
     required: true,
   })
   volume: number
-  @Prop({
-    type: Number,
-    required: true,
-  })
-  pressure: number
   @Prop({
     type: Number,
     required: true,

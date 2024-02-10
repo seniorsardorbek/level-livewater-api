@@ -17,7 +17,7 @@ export function convertArrayToJSON (inputArray) {
   ) {
     const arr = await read(`./passports/${serie}.json`)
     const { level, volume } = arr.find(el => el.level === deviceLevel)
-    return { level, volume, pressure: 961.8 }
+    return { level, volume }
   }
   
   export async function read (dir: string) {

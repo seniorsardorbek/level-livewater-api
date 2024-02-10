@@ -36,7 +36,7 @@ export class BasedataService {
           : createBasedata.level
       const date_in_ms = new Date().getTime()
       const signal = deviceLevel ? 'good' : 'nosignal'
-      const { volume, pressure } = await getDataFromDevice(
+      const { volume } = await getDataFromDevice(
         deviceLevel,
         createBasedata.serie
       )
@@ -46,7 +46,6 @@ export class BasedataService {
         level: createBasedata.level,
         device: device._id,
         volume,
-        pressure,
       })
       return { msg: 'Malumot saqlandi!' }
     } catch (error) {
@@ -62,7 +61,7 @@ export class BasedataService {
   }: BasedataQueryDto): Promise<PaginationResponse<Basedata>> {
     try {
       const { limit = 10, offset = 0 } = page || {}
-      const { by = 'created_at', order = 'desc' } = sort || {}
+      const { by = "date_in_ms", order = 'desc' } = sort || {}
       const { start, end, device, region } = filter || {}
       const query: any = {}
       if (start) {
@@ -94,13 +93,11 @@ export class BasedataService {
     }
   }
 
-  async lastData ({ page }: QueryDto) {
+  async lastData () {
     try {
-      const now = new Date() // current time in local timezone
-      const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000) // time one hour ago
-
-      const timestampOneHourAgo = oneHourAgo.getTime() // timestamp of one hour ago in milliseconds
-
+      const now = new Date() 
+      const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000) 
+      const timestampOneHourAgo = oneHourAgo.getTime() 
       const data: DataItem[] = await this.basedataModel
         .find({
           date_in_ms: { $gte: timestampOneHourAgo },
@@ -110,7 +107,7 @@ export class BasedataService {
       let uniqueSeriesMap = {}
 
       data.forEach(item => {
-        const serie = item.serie
+        const serie = item.device.serie
         uniqueSeriesMap[serie] = item
       })
 
@@ -122,34 +119,65 @@ export class BasedataService {
   }
   async lastDataOperator (req: CustomRequest) {
     try {
-      const now = new Date() // current time in local timezone
-      const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000) // time one hour ago
-
-      const timestampOneHourAgo = oneHourAgo.getTime() // timestamp of one hour ago in milliseconds
-      const owner = req.user.id
-      const devices = await this.deviceModel.find({ owner }).lean()
-      const devices_id = devices.map(device => device._id)
+      const now = new Date()
+      const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000) 
+      const timestampOneHourAgo = oneHourAgo.getTime() 
       const data: DataItem[] = await this.basedataModel
-        .find({
-          device: { $in: devices_id } ,
-          date_in_ms: { $gte: timestampOneHourAgo },
-        })
-        .populate([{ path: 'device', select: 'serie name' }])
+        .find({ date_in_ms: { $gte: timestampOneHourAgo } })
+        .populate('device', 'serie name') 
         .lean()
       let uniqueSeriesMap = {}
 
       data.forEach(item => {
-        const serie = item.serie
+        const serie = item.device.serie
         uniqueSeriesMap[serie] = item
       })
 
       let uniqueSeriesArray = Object.values(uniqueSeriesMap)
       return uniqueSeriesArray
     } catch (error) {
-      throw new BadRequestException({ msg: "Keyinroq urinib ko'ring..." })
+      throw new BadRequestException({
+        msg: "Keyinroq urinib ko'ring...",
+        error,
+      })
     }
   }
+  async operatorLastData (req: CustomRequest) {
+    try {
+      const owner = req.user.id
+      const lastAdded: DataItem | null = await this.basedataModel
+        .findOne()
+        .sort({ date_in_ms: -1 })
+        .lean()
+      if (!lastAdded) {
+        return []
+      }
+      const devices = await this.deviceModel.find({ owner }).lean()
+      const devices_id = devices.map(device => device._id)
+      const now = new Date(lastAdded.date_in_ms)
+      const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000) // time one hour ago
+      const timestampOneHourAgo = oneHourAgo.getTime() // timestamp of one hour ago in milliseconds
 
+      const data: DataItem[] = await this.basedataModel
+        .find({ date_in_ms: { $gte: timestampOneHourAgo } ,device: { $in: devices_id }   })
+        .populate('device', 'serie name') // Populate the 'device' field with 'serie' and 'name'
+        .lean()
+      let uniqueSeriesMap = {}
+
+      data.forEach(item => {
+        const serie = item.device.serie
+        uniqueSeriesMap[serie] = item
+      })
+
+      let uniqueSeriesArray = Object.values(uniqueSeriesMap)
+      return uniqueSeriesArray
+    } catch (error) {
+      throw new BadRequestException({
+        msg: "Keyinroq urinib ko'ring...",
+        error,
+      })
+    }
+  }
   // ! operator devices
   async operatorDeviceBaseData (
     { page, filter, sort }: BasedataQueryDto,
@@ -157,7 +185,7 @@ export class BasedataService {
   ) {
     try {
       const { limit = 10, offset = 0 } = page || {}
-      const { by = 'created_at', order = 'desc' } = sort || {}
+      const { by = 'date_in_ms', order = 'desc' } = sort || {}
       const { start, end, device } = filter || {}
       const query: any = {}
       if (start) {
@@ -223,23 +251,7 @@ export class BasedataService {
     }
   }
 
-  // ! Bitta mal'lumotni yangilash uchun
-  async update ({ id }: ParamIdDto, updateBasedatumDto: UpdateBasedatumDto) {
-    try {
-      const updated = await this.basedataModel.findByIdAndUpdate(
-        id,
-        updateBasedatumDto,
-        { new: true }
-      )
-      if (updated) {
-        return { msg: 'Muvaffaqqiyatli yangilandi!' }
-      } else {
-        return { msg: 'Yangilanishda xatolik!' }
-      }
-    } catch (error) {
-      throw new BadRequestException({ msg: "Keyinroq urinib ko'ring..." })
-    }
-  }
+
 
   //! Bitta mal'lumotni o'chirish uchun
   async remove ({ id }: ParamIdDto) {
@@ -280,14 +292,66 @@ export class BasedataService {
       }
       const data = await this.basedataModel
         .find({ ...query })
-        .sort({ created_at: -1 })
-        .populate([{ path: 'device', select: 'serie name' }])
+        .sort({ date_in_ms: -1 })
+        .populate([{ path: 'device', select: 'serie' }])
         .limit(limit)
         .exec()
       const jsonData = data.map((item: any) => {
         const obj = item.toObject()
         obj._id = item?._id?.toString()
         obj.device = item?.device?.serie
+        obj.date_in_ms = formatTimestamp(item?.date_in_ms)
+        return obj
+      })
+      const ws = XLSX.utils.json_to_sheet(jsonData)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'DataSheet')
+      const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' })
+      res.setHeader('Content-Disposition', 'attachment; filename=basedata.xlsx')
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      )
+      res.send(excelBuffer)
+    } catch (error) {
+      throw new BadRequestException({ msg: "Keyinroq urinib ko'ring..." })
+    }
+  }
+  async operatorDeviceBaseDataXLSX (req : CustomRequest ,{ filter, page }: BasedataQueryDto, res: Response) {
+    try {
+      const { start, end, device, region } = filter || {}
+      const { limit = 1000 } = page || {}
+      const query: any = {}
+      if (start) {
+        query.date_in_ms = query.date_in_ms || {}
+        query.date_in_ms.$gte = start
+      }
+      if (end) {
+        query.date_in_ms = query.date_in_ms || {}
+        query.date_in_ms.$lte = end
+      }
+      if (device) {
+        query.device = device
+      }
+      if (!device && region) {
+        const devices = await this.deviceModel.find({ region }).lean()
+        const devices_id = devices.map(device => device._id)
+        query.device = { $in: devices_id }
+      }
+      const owner = req.user.id
+      const devices = await this.deviceModel.find({ owner }).lean()
+      const devices_id = devices.map(device => device._id)
+      const data = await this.basedataModel
+        .find({ ...query , device: { $in: devices_id } })
+        .sort({ date_in_ms: -1 })
+        .populate([{ path: 'device', select: 'serie' }])
+        .limit(limit)
+        .exec()
+      const jsonData = data.map((item: any) => {
+        const obj = item.toObject()
+        obj._id = item?._id?.toString()
+        obj.device = item?.device?.serie
+        obj.pressure = 961.8
         obj.date_in_ms = formatTimestamp(item?.date_in_ms)
         return obj
       })

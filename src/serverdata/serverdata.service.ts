@@ -27,7 +27,7 @@ export class ServerdataService {
     try {
       const oneHourAgo = new Date(Date.now() - 40 * 60 * 1000)
       const lastAdded = await this.basedataModel
-        .find({ created_at: { $gte: oneHourAgo } })
+        .find({ send_data_in_ms: { $gte: oneHourAgo } })
         .lean()
       const devices = await this.deviceModel.find().lean()
       const date_in_ms = new Date().getTime()
@@ -41,7 +41,6 @@ export class ServerdataService {
           this.basedataModel.create({
             volume: 0,
             level: 0,
-            pressure: 0,
             date_in_ms,
             device: dev._id,
             signal: 'nosignal',
@@ -62,7 +61,7 @@ export class ServerdataService {
           {
             $facet: {
               data: [
-                { $sort: { created_at: -1 } },
+                { $sort: { send_data_in_ms: -1 } },
                 { $skip: limit * offset },
                 { $limit: limit },
               ],
@@ -97,38 +96,7 @@ export class ServerdataService {
     }
   }
 
-  async update ({ id }: ParamIdDto, updateServerdatumDto: UpdateServerdatumDto) {
-    try {
-      const updated = await this.serverdataModel.findByIdAndUpdate(
-        id,
-        updateServerdatumDto,
-        { new: true }
-      )
-      if (!updated) {
-        throw new BadRequestException({ msg: 'Server malumoti mavjud emas.' })
-      } else {
-        return { msg: 'Muvaffaqqiyatli yangilandi.' }
-      }
-    } catch (error) {
-      throw new BadRequestException({ msg: "Keyinroq urinib ko'ring..." })
-    }
-  }
-
-  async remove ({ id }: ParamIdDto) {
-    try {
-      const removed = await this.serverdataModel.findByIdAndDelete(id)
-      if (!removed) {
-        throw new BadRequestException({ msg: 'Server malumoti mavjud emas.' })
-      } else {
-        return { msg: "Muvaffaqqiyatli o'chirildi." }
-      }
-    } catch (error) {
-      throw new BadRequestException({ msg: "Keyinroq urinib ko'ring..." })
-    }
-  }
-
   fetchData (dev: Device, basedata: any, date_in_ms: number) {
-    console.log(basedata)
     const { level, volume } = basedata
     const url = 'http://94.228.112.211:2010'
 

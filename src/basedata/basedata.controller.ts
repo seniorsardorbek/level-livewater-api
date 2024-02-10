@@ -1,79 +1,70 @@
 import {
+  Body,
   Controller,
   Get,
-  Post,
-  Body,
-  Patch,
   Param,
-  Delete,
+  Post,
   Query,
-  Res,
-  ValidationPipe,
-  UseGuards,
   Req,
+  Res,
+  UseGuards,
+  ValidationPipe
 } from '@nestjs/common'
-import { BasedataService } from './basedata.service'
-import { CreateBasedatumDto } from './dto/create-basedatum.dto'
-import { UpdateBasedatumDto } from './dto/update-basedatum.dto'
-import { ParamIdDto, QueryDto } from 'src/_shared/query.dto'
-import { BasedataQueryDto } from './dto/basedata.query.dto'
-import { Response } from 'express'
 import {
   ApiCreatedResponse,
   ApiOperation,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger'
-import { Basedata } from './Schema/Basedatas'
-import { IsLoggedIn } from 'src/auth/is-loggin.guard'
-import { HasRole } from 'src/auth/has-roles.guard'
-import { SetRoles } from 'src/auth/set-roles.decorator'
+import { Response } from 'express'
+import { ParamIdDto, QueryDto } from 'src/_shared/query.dto'
 import { CustomRequest } from 'src/_shared/response'
+import { HasRole } from 'src/auth/has-roles.guard'
+import { IsLoggedIn } from 'src/auth/is-loggin.guard'
+import { SetRoles } from 'src/auth/set-roles.decorator'
+import { Basedata } from './Schema/Basedatas'
+import { BasedataService } from './basedata.service'
+import { BasedataQueryDto } from './dto/basedata.query.dto'
+import { CreateBasedatumDto } from './dto/create-basedatum.dto'
 
 @Controller('basedata')
 @ApiTags('Basedata')
 export class BasedataController {
-  constructor(private readonly basedataService: BasedataService) {}
-  // !
+  constructor (private readonly basedataService: BasedataService) {}
+  // ?
   @Post()
   @ApiCreatedResponse({
     description: 'Automatically generated basedata ',
     type: Basedata,
   })
-  create(@Body() createBasedatumDto: CreateBasedatumDto) {
+  create (@Body() createBasedatumDto: CreateBasedatumDto) {
     return this.basedataService.create(createBasedatumDto)
   }
-  // !
+
+  // ?
+  // ?
   @Get()
   @ApiOperation({
     summary: 'Get all  basedata',
   })
   @ApiResponse({ status: 200, description: 'Successfully retrieved cats.' })
-  findAll(@Query() query: BasedataQueryDto) {
+  findAll (@Query() query: BasedataQueryDto) {
     return this.basedataService.findAll(query)
   }
-  // !
+  // ?
   @Get('xlsx')
-  async exportToExcel(@Res() res: Response, @Query() query: BasedataQueryDto) {
+  async exportToExcel (@Res() res: Response, @Query() query: BasedataQueryDto) {
     return this.basedataService.xlsx(query, res)
   }
+  // ?
+  // ?
   @Get('last-updated')
-  lastData(@Query() query: QueryDto) {
-    return this.basedataService.lastData(query)
+  lastData () {
+    return this.basedataService.lastData()
   }
-  @SetRoles('operator')
-  @UseGuards(IsLoggedIn , HasRole)
-  @Get('operator')
-  operatorDeviceBaseData(@Query() query: BasedataQueryDto , @Req() req:  CustomRequest) {
-    return this.basedataService.operatorDeviceBaseData(query , req )
-  }
-  @SetRoles('operator')
-  @UseGuards(IsLoggedIn , HasRole)
-  @Get('operator')
-  lastDataOperator(@Req() req:  CustomRequest) {
-    return this.basedataService.lastDataOperator(req )
-  }
-  // !
+
+  // ?
+  // ?
   @Get('device/:id')
   @ApiOperation({
     summary: 'id orqali olish',
@@ -81,13 +72,14 @@ export class BasedataController {
   })
   @ApiResponse({ status: 200, description: 'Muvavvaqqiyatli olindi' })
   @ApiResponse({ status: 404, description: 'Xatolik.' })
-  findOneDevice(
+  findOneDevice (
     @Param(ValidationPipe) id: ParamIdDto,
     @Query() query: QueryDto
   ) {
     return this.basedataService.findOneDevice(query, id)
   }
-  // !
+  // ?
+  // ?
   @Get(':id')
   @ApiOperation({
     summary: 'id orqali olish',
@@ -95,26 +87,34 @@ export class BasedataController {
   })
   @ApiResponse({ status: 200, description: 'Muvavvaqqiyatli olindi' })
   @ApiResponse({ status: 404, description: 'Xatolik.' })
-  findOne(@Param(ValidationPipe) id: ParamIdDto) {
+  findOne (@Param(ValidationPipe) id: ParamIdDto) {
     return this.basedataService.findOne(id)
   }
-  // !
-  @Patch(':id')
-  @ApiOperation({
-    summary: 'id orqali yangilash',
-    description: 'id orqali yangilash.',
-  })
-  @ApiResponse({ status: 200, description: 'Muvafqqattiyatli yangilandi' })
-  @ApiResponse({ status: 404, description: 'Mavjud emas.' })
-  update(
-    @Param(ValidationPipe) id: ParamIdDto,
-    @Body() updateBasedatumDto: UpdateBasedatumDto
-  ) {
-    return this.basedataService.update(id, updateBasedatumDto)
+  // ?
+  // ! Operator sections (last-added , constructor ,constructor in XLSx )
+  @SetRoles('operator')
+  @UseGuards(IsLoggedIn, HasRole)
+  @Get('opr/lastadded')
+  operatorLastData (@Req() req: CustomRequest) {
+    return this.basedataService.operatorLastData(req)
   }
-  // !
-  @Delete(':id')
-  remove(@Param(ValidationPipe) id: ParamIdDto) {
-    return this.basedataService.remove(id)
+  @SetRoles('operator')
+  @UseGuards(IsLoggedIn, HasRole)
+  @Get('opr/constructor')
+  operatorDeviceBaseData (
+    @Query() query: BasedataQueryDto,
+    @Req() req: CustomRequest
+  ) {
+    return this.basedataService.operatorDeviceBaseData(query, req)
+  }
+  @SetRoles('operator')
+  @UseGuards(IsLoggedIn, HasRole)
+  @Get('opr/constructorxlsx')
+  operatorDeviceBaseDataXLSX (
+    @Req() req: CustomRequest,
+    @Res() res: Response,
+    @Query() query: BasedataQueryDto
+  ) {
+    return this.basedataService.operatorDeviceBaseDataXLSX(req, query, res)
   }
 }
