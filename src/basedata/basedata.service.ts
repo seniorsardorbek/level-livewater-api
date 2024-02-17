@@ -106,7 +106,7 @@ export class BasedataService {
       let uniqueSeriesMap = {}
 
       data.forEach(item => {
-        const serie = item.device.serie
+        const serie = item?.device?.serie
         if (serie) { 
           uniqueSeriesMap[serie] = item;
       }
