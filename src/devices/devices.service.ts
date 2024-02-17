@@ -151,17 +151,20 @@ export class DevicesService {
         })
       }
       if (file?.path && updateDeviceDto.serie) {
-        const data = xlsxToArray(file?.path)
+        const data = xlsxToArray(file.path)
         if (!data) {
-          file?.filename && deleteFile('uploads', file?.filename)
-          throw new BadRequestException({ msg: 'Invalid xlsx file ' })
+          if (file.filename) deleteFile('uploads', file.filename)
+          throw new BadRequestException({ msg: 'Invalid xlsx file' })
         }
+        const targetFileName = updateDeviceDto.serie || exist.serie
         deleteFile('passports', `${exist.serie}.json`)
-        file?.filename &&
-          write(
-            `./passports/${updateDeviceDto.serie || exist.serie}.json`,
-            data as any
-          )
+        if (file.filename)
+          write(`./passports/${targetFileName}.json`, data as any)
+      } else if (file?.path && !updateDeviceDto.serie) {
+        if (file.filename) deleteFile('uploads', file.filename)
+        throw new BadRequestException({ msg: 'Serie is required!' })
+      } else if (!file?.path && updateDeviceDto?.serie) {
+        throw new BadRequestException({ msg: 'File is required!' })
       }
 
       const updated = await this.deviceModel.findByIdAndUpdate(
@@ -170,7 +173,7 @@ export class DevicesService {
         { new: true }
       )
       if (updated) {
-        return { msg: 'Qurilma yangilandi.' }
+        return { msg: 'Qurilma yangilandi.' , updated }
       } else {
         throw new BadRequestException({ msg: 'Qurilmani yangilashda xatolik' })
       }
