@@ -107,7 +107,9 @@ export class BasedataService {
 
       data.forEach(item => {
         const serie = item.device.serie
-        uniqueSeriesMap[serie] = item
+        if (serie) { 
+          uniqueSeriesMap[serie] = item;
+      }
       })
 
       let uniqueSeriesArray = Object.values(uniqueSeriesMap)
@@ -165,7 +167,9 @@ export class BasedataService {
 
       data.forEach(item => {
         const serie = item.device.serie
-        uniqueSeriesMap[serie] = item
+        if (serie) { 
+          uniqueSeriesMap[serie] = item;
+      }
       })
 
       let uniqueSeriesArray = Object.values(uniqueSeriesMap)
