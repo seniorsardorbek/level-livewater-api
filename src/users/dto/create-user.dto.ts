@@ -1,7 +1,16 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsMongoId, IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
-import { ObjectId } from 'mongoose';
-import { UserRole } from 'src/_shared/enums';
+import { ApiProperty } from '@nestjs/swagger'
+import {
+  IsEnum,
+  IsMongoId,
+  IsNotEmpty,
+  IsPhoneNumber,
+  IsString,
+  Length,
+  MaxLength,
+  MinLength,
+} from 'class-validator'
+import { ObjectId } from 'mongoose'
+import { UserRole } from 'src/_shared/enums'
 
 export class CreateUserDto {
   @ApiProperty({
@@ -10,7 +19,7 @@ export class CreateUserDto {
   })
   @IsString()
   @IsNotEmpty()
-  first_name: string;
+  first_name: string
 
   @ApiProperty({
     title: 'Last Name',
@@ -18,7 +27,7 @@ export class CreateUserDto {
   })
   @IsString()
   @IsNotEmpty()
-  last_name: string;
+  last_name: string
 
   @ApiProperty({
     title: 'Username (unique)',
@@ -26,7 +35,17 @@ export class CreateUserDto {
   })
   @IsString()
   @IsNotEmpty()
-  username: string;
+  username: string
+
+  @ApiProperty({
+    title: 'mobil_phone ',
+    example: '998901234556',
+  })
+  @IsString()
+  @Length(12)
+  @IsPhoneNumber('UZ')
+  @IsNotEmpty()
+  mobil_phone: string
 
   @ApiProperty({
     title: 'Password (min 8 characters, max 20 characters)',
@@ -36,7 +55,7 @@ export class CreateUserDto {
   @IsNotEmpty()
   @MinLength(8)
   @MaxLength(20)
-  password: string;
+  password: string
 
   @ApiProperty({
     title: 'Region ID (MongoDB ObjectId)',
@@ -44,7 +63,7 @@ export class CreateUserDto {
   })
   @IsNotEmpty()
   @IsMongoId()
-  region: ObjectId;
+  region: ObjectId
 
   @ApiProperty({
     title: 'Role (operator or admin)',
@@ -53,5 +72,5 @@ export class CreateUserDto {
   })
   @IsNotEmpty()
   @IsEnum(UserRole)
-  role: UserRole;
+  role: UserRole
 }

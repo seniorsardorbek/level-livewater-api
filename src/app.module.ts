@@ -10,6 +10,7 @@ import { DevicesModule } from './devices/devices.module'
 import { RegionsModule } from './regions/regions.module'
 import { ServerdataModule } from './serverdata/serverdata.module'
 import { UsersModule } from './users/users.module'
+import { SmsModule } from './sms/sms.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { UsersModule } from './users/users.module'
     BasedataModule,
     ServerdataModule,
     AuthModule,
+    SmsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

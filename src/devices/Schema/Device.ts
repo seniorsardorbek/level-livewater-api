@@ -47,6 +47,11 @@ export class Device {
     required: true,
   })
   region: ObjectId
+  @Prop({
+    type: mongoose.Schema.Types.Boolean,
+    default : true
+  })
+  isWorking: boolean
 
   @Prop({
     type: mongoose.Schema.Types.ObjectId,

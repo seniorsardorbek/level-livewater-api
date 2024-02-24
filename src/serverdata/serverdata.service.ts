@@ -11,7 +11,6 @@ import { getCurrentDateTime } from 'src/_shared/utils/utils'
 import { Basedata } from 'src/basedata/Schema/Basedatas'
 import { Device } from 'src/devices/Schema/Device'
 import { Serverdata } from './Schema/Serverdata'
-import { UpdateServerdatumDto } from './dto/update-serverdatum.dto'
 
 @Injectable()
 export class ServerdataService {

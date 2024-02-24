@@ -1,8 +1,8 @@
 import { BadRequestException, Injectable, Res } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { Response } from 'express'
-import { Model } from 'mongoose'
-import { DataItem } from 'src/_shared'
+import { FlattenMaps, Model, ObjectId } from 'mongoose'
+import { DataItem, DeviceFace } from 'src/_shared'
 import { ParamIdDto, QueryDto } from 'src/_shared/query.dto'
 import { CustomRequest, PaginationResponse } from 'src/_shared/response'
 import { getDataFromDevice } from 'src/_shared/utils/passport.utils'
@@ -12,13 +12,56 @@ import * as XLSX from 'xlsx'
 import { Basedata } from './Schema/Basedatas'
 import { BasedataQueryDto } from './dto/basedata.query.dto'
 import { CreateBasedatumDto } from './dto/create-basedatum.dto'
+import { Cron, CronExpression } from '@nestjs/schedule'
+import { SmsService } from '../sms/sms.service'
 
 @Injectable()
 export class BasedataService {
   constructor (
     @InjectModel(Basedata.name) private basedataModel: Model<Basedata>,
-    @InjectModel(Device.name) private deviceModel: Model<Device>
+    @InjectModel(Device.name) private deviceModel: Model<Device>,
+    private readonly SmsService: SmsService
   ) {}
+
+  @Cron(CronExpression.EVERY_DAY_AT_9AM)
+  async checkStatus () {
+    try {
+      const now = new Date()
+      const dayAgo = new Date(now.getTime() - 1440 * 60 * 1000)
+      const timestampDayAgo = dayAgo.getTime()
+      const devices: DeviceFace[] = await this.deviceModel
+        .find({ isWorking: true })
+        .populate('owner', 'mobile_phone')
+        .lean()
+      const data: DataItem[] = await this.basedataModel
+        .find({
+          date_in_ms: { $gte: timestampDayAgo },
+        })
+        .lean()
+      console.log(devices)
+      devices.map(async (device: DeviceFace) => {
+        const basedata = data.find(
+          basedata =>
+            basedata.level !== 0 &&
+            basedata.device.toString() === device._id.toString()
+        )
+        if (!basedata) {
+        await this.deviceModel.findByIdAndUpdate(device._id, {
+            isWorking: false,
+          })
+          this.SmsService.sender({
+            mobile_phone: device?.owner?.mobile_phone,
+            message: `${device?.name} obyektigagi ${device?._id} ID raqamiga ega qurilmangiz so‘nggi 24 soat ichida serverimizga ulana olmadi.  Iltimos qo'llanmaga asosan xatolikni bartaraf qiling. Batafsil: https://level.livewater.uz`,
+            callback_url: 'https://level.livewater.uz',
+            from: '4546',
+          })
+        }
+      })
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
   async create (createBasedata: CreateBasedatumDto) {
     try {
       const device = await this.deviceModel.findOne({
@@ -26,6 +69,9 @@ export class BasedataService {
       })
       if (!device) {
         throw new BadRequestException({ msg: 'Device not found!' })
+      }
+      if (!device.isWorking) {
+        this.deviceModel.findByIdAndUpdate(device._id, { isWorking: true })
       }
       const deviceLevel =
         createBasedata.level > 59
@@ -60,7 +106,7 @@ export class BasedataService {
   }: BasedataQueryDto): Promise<PaginationResponse<Basedata>> {
     try {
       const { limit = 10, offset = 0 } = page || {}
-      const { by = "date_in_ms", order = 'desc' } = sort || {}
+      const { by = 'date_in_ms', order = 'desc' } = sort || {}
       const { start, end, device, region } = filter || {}
       const query: any = {}
       if (start) {
@@ -94,9 +140,9 @@ export class BasedataService {
 
   async lastData () {
     try {
-      const now = new Date() 
-      const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000) 
-      const timestampOneHourAgo = oneHourAgo.getTime() 
+      const now = new Date()
+      const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000)
+      const timestampOneHourAgo = oneHourAgo.getTime()
       const data: DataItem[] = await this.basedataModel
         .find({
           date_in_ms: { $gte: timestampOneHourAgo },
@@ -107,9 +153,9 @@ export class BasedataService {
 
       data.forEach(item => {
         const serie = item?.device?.serie
-        if (serie) { 
-          uniqueSeriesMap[serie] = item;
-      }
+        if (serie) {
+          uniqueSeriesMap[serie] = item
+        }
       })
 
       let uniqueSeriesArray = Object.values(uniqueSeriesMap)
@@ -118,14 +164,15 @@ export class BasedataService {
       throw new BadRequestException({ msg: "Keyinroq urinib ko'ring..." })
     }
   }
+
   async lastDataOperator (req: CustomRequest) {
     try {
       const now = new Date()
-      const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000) 
-      const timestampOneHourAgo = oneHourAgo.getTime() 
+      const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000)
+      const timestampOneHourAgo = oneHourAgo.getTime()
       const data: DataItem[] = await this.basedataModel
         .find({ date_in_ms: { $gte: timestampOneHourAgo } })
-        .populate('device', 'serie name') 
+        .populate('device', 'serie name')
         .lean()
       let uniqueSeriesMap = {}
 
@@ -143,6 +190,7 @@ export class BasedataService {
       })
     }
   }
+
   async operatorLastData (req: CustomRequest) {
     try {
       const owner = req.user.id
@@ -160,16 +208,19 @@ export class BasedataService {
       const timestampOneHourAgo = oneHourAgo.getTime() // timestamp of one hour ago in milliseconds
 
       const data: DataItem[] = await this.basedataModel
-        .find({ date_in_ms: { $gte: timestampOneHourAgo } ,device: { $in: devices_id }   })
+        .find({
+          date_in_ms: { $gte: timestampOneHourAgo },
+          device: { $in: devices_id },
+        })
         .populate('device', 'serie name') // Populate the 'device' field with 'serie' and 'name'
         .lean()
       let uniqueSeriesMap = {}
 
       data.forEach(item => {
         const serie = item.device.serie
-        if (serie) { 
-          uniqueSeriesMap[serie] = item;
-      }
+        if (serie) {
+          uniqueSeriesMap[serie] = item
+        }
       })
 
       let uniqueSeriesArray = Object.values(uniqueSeriesMap)
@@ -181,6 +232,7 @@ export class BasedataService {
       })
     }
   }
+
   // ! operator devices
   async operatorDeviceBaseData (
     { page, filter, sort }: BasedataQueryDto,
@@ -254,9 +306,6 @@ export class BasedataService {
     }
   }
 
-
-
-
   async xlsx ({ filter, page }: BasedataQueryDto, @Res() res: Response) {
     try {
       const { start, end, device, region } = filter || {}
@@ -306,7 +355,11 @@ export class BasedataService {
       throw new BadRequestException({ msg: "Keyinroq urinib ko'ring..." })
     }
   }
-  async operatorDeviceBaseDataXLSX (req : CustomRequest ,{ filter, page }: BasedataQueryDto, res: Response) {
+  async operatorDeviceBaseDataXLSX (
+    req: CustomRequest,
+    { filter, page }: BasedataQueryDto,
+    res: Response
+  ) {
     try {
       const { start, end, device, region } = filter || {}
       const { limit = 1000 } = page || {}
@@ -331,7 +384,7 @@ export class BasedataService {
       const devices = await this.deviceModel.find({ owner }).lean()
       const devices_id = devices.map(device => device._id)
       const data = await this.basedataModel
-        .find({ ...query , device: { $in: devices_id } })
+        .find({ ...query, device: { $in: devices_id } })
         .sort({ date_in_ms: -1 })
         .populate([{ path: 'device', select: 'serie' }])
         .limit(limit)
