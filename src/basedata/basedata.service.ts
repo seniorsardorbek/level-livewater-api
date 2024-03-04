@@ -38,7 +38,6 @@ export class BasedataService {
           date_in_ms: { $gte: timestampDayAgo },
         })
         .lean()
-      console.log(devices)
       devices.map(async (device: DeviceFace) => {
         const basedata = data.find(
           basedata =>

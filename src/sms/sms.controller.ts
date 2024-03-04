@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
-import { CreateSmDto } from './dto/create-sm.dto';
+import { CreateSmDto, TotalDto } from './dto/create-sm.dto';
 import { SmsService } from './sms.service';
 
 @Controller('sms')
@@ -8,12 +8,16 @@ export class SmsController {
 
   @Post()
   create(@Body() createSmDto: CreateSmDto) {
-    return this.smsService.sendMessage(createSmDto);
+    return this.smsService.sender(createSmDto);
   }
 
   @Get('limit')
   getlimit() {
     return this.smsService.getLimit();
+  }
+  @Post('total')
+  total(@Body() body : TotalDto) {
+    return this.smsService.total(body);
   }
   @Get('refresh')
   refresh() {

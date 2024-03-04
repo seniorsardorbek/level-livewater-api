@@ -2,7 +2,7 @@ import { HttpService } from '@nestjs/axios'
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { AxiosResponse } from 'axios'
-import { CreateSmDto } from './dto/create-sm.dto'
+import { CreateSmDto, TotalDto } from './dto/create-sm.dto'
 
 @Injectable()
 export class SmsService {
@@ -10,9 +10,9 @@ export class SmsService {
     private httpService: HttpService,
     private readonly configService: ConfigService
   ) {}
-  async sendMessage (createSmDto: CreateSmDto) {
-    const res = await this.sender(createSmDto)
-    return res
+   sendMessage (createSmDto: CreateSmDto) {
+    return  this.sender(createSmDto)
+
   }
 
   async getLimit () {
@@ -55,15 +55,27 @@ export class SmsService {
       })
     return { msg: 'Token yangilandi' }
   }
+  async total (body: TotalDto) {
+    return this.httpService
+      .post('https://notify.eskiz.uz/api/user/totals', body, {
+        headers: {
+          authorization: `Bearer ${this.configService.get<string>(
+            'SMS_TOKEN'
+          )}`,
+        },
+      })
+      .toPromise()
+      .then(res => {
+        return res.data
+      })
+      .catch(err => {
+        return err.response
+      })
+  }
 
-  async sender (options: {
-    mobile_phone: string
-    message: string
-    from: string
-    callback_url: string
-  }) {
+  async sender (options: CreateSmDto) {
     const url = `https://notify.eskiz.uz/api/message/sms/send`
-    const res = await this.httpService
+    const data =  await  this.httpService
       .post(url, options, {
         headers: {
           authorization: `Bearer ${this.configService.get<string>(
@@ -73,14 +85,13 @@ export class SmsService {
         },
       })
       .toPromise()
-      .catch((err: AxiosResponse) => {
-        if (err.status === 401) {
-          this.refreshToken()
-        }
+      .then((res: AxiosResponse) => {
+        return res.data
       })
       .catch(error => {
-        console.log(error)
+        console.log(error.response.data)
+        return error.response.data 
       })
-    return res
+   return data
   }
 }
