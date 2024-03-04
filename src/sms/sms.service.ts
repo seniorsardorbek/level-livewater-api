@@ -26,7 +26,7 @@ export class SmsService {
           },
         })
         .toPromise()
-      return res.data
+      return res?.data
     } catch (error) {
       throw new BadRequestException({ msg: 'Keyinroq urinib koring', error })
     }
@@ -46,7 +46,7 @@ export class SmsService {
       )
       .toPromise()
       .then(res => {
-        if (res.data.token_type === 'bearer') {
+        if (res?.data?.token_type === 'bearer') {
           this.configService.set<string>('SMS_TOKEN', res.data.data.token)
         }
       })
@@ -89,8 +89,8 @@ export class SmsService {
         return res.data
       })
       .catch(error => {
-        console.log(error.response.data)
-        return error.response.data 
+        console.log(error.response?.data)
+        return error.response?.data 
       })
    return data
   }
