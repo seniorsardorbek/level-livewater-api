@@ -23,7 +23,7 @@ export class BasedataService {
     private readonly SmsService: SmsService
   ) {}
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_DAY_AT_9PM)
   async checkStatus () {
     try {
       const now = new Date()

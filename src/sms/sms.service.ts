@@ -86,11 +86,9 @@ export class SmsService {
       })
       .toPromise()
       .then((res: AxiosResponse) => {
-        console.log(res);
         return res.data
       })
       .catch(error => {
-        console.log(error.response)
         console.log(error.response?.data)
         return error.response?.data 
       })
