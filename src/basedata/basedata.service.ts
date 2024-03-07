@@ -23,7 +23,7 @@ export class BasedataService {
     private readonly SmsService: SmsService
   ) {}
 
-  @Cron(CronExpression.EVERY_DAY_AT_9AM)
+  @Cron(CronExpression.EVERY_MINUTE)
   async checkStatus () {
     try {
       const now = new Date()
@@ -38,18 +38,27 @@ export class BasedataService {
           date_in_ms: { $gte: timestampDayAgo },
         })
         .lean()
+        console.log(devices);
       devices.map(async (device: DeviceFace) => {
-        const basedata = data.find(
+        const basedata =  data.every(
           basedata =>
-            basedata.level !== 0 &&
+            basedata.signal === 'nosignal' &&
             basedata.device.toString() === device._id.toString()
         )
-        if (!basedata) {
+        console.log(basedata);
+        if (basedata) {
         await this.deviceModel.findByIdAndUpdate(device._id, {
             isWorking: false,
           })
+          console.log(typeof device?.owner?.mobile_phone);
+          console.log({
+            mobile_phone: device?.owner?.mobile_phone  ,
+            message: `${device?.name} obyektigagi ${device?._id} ID raqamiga ega qurilmangiz so‘nggi 24 soat ichida serverimizga ulana olmadi.  Iltimos qo'llanmaga asosan xatolikni bartaraf qiling. Batafsil: https://level.livewater.uz`,
+            callback_url: 'https://level.livewater.uz',
+            from: '4546',
+          });
           this.SmsService.sender({
-            mobile_phone: device?.owner?.mobile_phone,
+            mobile_phone: device?.owner?.mobile_phone  ,
             message: `${device?.name} obyektigagi ${device?._id} ID raqamiga ega qurilmangiz so‘nggi 24 soat ichida serverimizga ulana olmadi.  Iltimos qo'llanmaga asosan xatolikni bartaraf qiling. Batafsil: https://level.livewater.uz`,
             callback_url: 'https://level.livewater.uz',
             from: '4546',
