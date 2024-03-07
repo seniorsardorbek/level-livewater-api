@@ -25,7 +25,7 @@ export interface DeviceFace {
   region: ObjectId;
   owner: {
     _id: ObjectId;
-    mobile_phone: string;
+    mobil_phone: string;
   };
   created_at: Date;
   updated_at: Date;

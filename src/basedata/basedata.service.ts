@@ -31,34 +31,25 @@ export class BasedataService {
       const timestampDayAgo = dayAgo.getTime()
       const devices: DeviceFace[] = await this.deviceModel
         .find({ isWorking: true })
-        .populate('owner', 'mobile_phone')
+        .populate({ path: 'owner', select: 'mobil_phone' })
         .lean()
       const data: DataItem[] = await this.basedataModel
         .find({
           date_in_ms: { $gte: timestampDayAgo },
         })
         .lean()
-        console.log(devices);
       devices.map(async (device: DeviceFace) => {
-        const basedata =  data.every(
+        const basedata = data.some(
           basedata =>
-            basedata.signal === 'nosignal' &&
+            basedata.signal === 'good' &&
             basedata.device.toString() === device._id.toString()
         )
-        console.log(basedata);
-        if (basedata) {
-        await this.deviceModel.findByIdAndUpdate(device._id, {
+        if (!basedata) {
+          await this.deviceModel.findByIdAndUpdate(device._id, {
             isWorking: false,
           })
-          console.log(typeof device?.owner?.mobile_phone);
-          console.log({
-            mobile_phone: device?.owner?.mobile_phone  ,
-            message: `${device?.name} obyektigagi ${device?._id} ID raqamiga ega qurilmangiz so‘nggi 24 soat ichida serverimizga ulana olmadi.  Iltimos qo'llanmaga asosan xatolikni bartaraf qiling. Batafsil: https://level.livewater.uz`,
-            callback_url: 'https://level.livewater.uz',
-            from: '4546',
-          });
           this.SmsService.sender({
-            mobile_phone: device?.owner?.mobile_phone  ,
+            mobil_phone: device?.owner?.mobil_phone,
             message: `${device?.name} obyektigagi ${device?._id} ID raqamiga ega qurilmangiz so‘nggi 24 soat ichida serverimizga ulana olmadi.  Iltimos qo'llanmaga asosan xatolikni bartaraf qiling. Batafsil: https://level.livewater.uz`,
             callback_url: 'https://level.livewater.uz',
             from: '4546',
