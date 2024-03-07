@@ -3,7 +3,7 @@ import { IsInt, IsNumber, IsPhoneNumber, IsString, Length, Min } from 'class-val
 
 export class CreateSmDto {
   @IsString()
-  mobil_phone: string
+  mobile_phone: string
   @IsString()
   message: string
   @IsString()

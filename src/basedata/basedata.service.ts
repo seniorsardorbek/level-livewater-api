@@ -49,7 +49,7 @@ export class BasedataService {
             isWorking: false,
           })
           this.SmsService.sender({
-            mobil_phone: device?.owner?.mobil_phone,
+            mobile_phone: device?.owner?.mobil_phone,
             message: `${device?.name} obyektigagi ${device?._id} ID raqamiga ega qurilmangiz so‘nggi 24 soat ichida serverimizga ulana olmadi.  Iltimos qo'llanmaga asosan xatolikni bartaraf qiling. Batafsil: https://level.livewater.uz`,
             callback_url: 'https://level.livewater.uz',
             from: '4546',
