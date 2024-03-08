@@ -62,6 +62,10 @@ export class BasedataController {
   lastData () {
     return this.basedataService.lastData()
   }
+  @Get('check')
+  checkStatus () {
+    return this.basedataService.checkStatus()
+  }
 
   // ?
   // ?

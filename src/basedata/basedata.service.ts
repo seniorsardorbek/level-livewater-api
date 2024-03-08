@@ -38,6 +38,9 @@ export class BasedataService {
           date_in_ms: { $gte: timestampDayAgo },
         })
         .lean()
+      console.log(data)
+      console.log(devices)
+
       this.processDevices(devices, data)
     } catch (error) {
       console.log(error)
@@ -401,6 +404,7 @@ export class BasedataService {
           basedata.signal === 'good' &&
           basedata.device.toString() === device._id.toString()
       )
+      console.log(isWorking);
 
       if (!isWorking) {
         try {
