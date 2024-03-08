@@ -23,7 +23,7 @@ export class BasedataService {
     private readonly SmsService: SmsService
   ) {}
 
-  @Cron(CronExpression.EVERY_DAY_AT_9PM)
+  @Cron(CronExpression.EVERY_DAY_AT_5PM)
   async checkStatus () {
     try {
       const now = new Date()
@@ -38,24 +38,7 @@ export class BasedataService {
           date_in_ms: { $gte: timestampDayAgo },
         })
         .lean()
-      devices.map(async (device: DeviceFace) => {
-        const basedata = data.some(
-          basedata =>
-            basedata.signal === 'good' &&
-            basedata.device.toString() === device._id.toString()
-        )
-        if (!basedata) {
-          await this.deviceModel.findByIdAndUpdate(device._id, {
-            isWorking: false,
-          })
-          this.SmsService.sender({
-            mobile_phone: device?.owner?.mobil_phone,
-            message: `${device?.name} obyektigagi ${device?._id} ID raqamiga ega qurilmangiz so‘nggi 24 soat ichida serverimizga ulana olmadi.  Iltimos qo'llanmaga asosan xatolikni bartaraf qiling. Batafsil: https://level.livewater.uz`,
-            callback_url: 'https://level.livewater.uz',
-            from: '4546',
-          })
-        }
-      })
+      this.processDevices(devices, data)
     } catch (error) {
       console.log(error)
     }
@@ -408,6 +391,42 @@ export class BasedataService {
       res.send(excelBuffer)
     } catch (error) {
       throw new BadRequestException({ msg: "Keyinroq urinib ko'ring..." })
+    }
+  }
+
+  async processDevices (devices: DeviceFace[], data: DataItem[]) {
+    for (const device of devices) {
+      const isWorking = data.some(
+        basedata =>
+          basedata.signal === 'good' &&
+          basedata.device.toString() === device._id.toString()
+      )
+
+      if (!isWorking) {
+        try {
+          // Update device status in the database
+          await this.deviceModel.findByIdAndUpdate(device._id, {
+            isWorking: false,
+          })
+
+          // Send SMS notification
+          const ownerMobilePhone = device?.owner?.mobil_phone
+          const message = `${device?.name || 'Device'} with ID ${
+            device?._id
+          } is not communicating with our server in the last 24 hours. Please address the issue. Details: https://level.livewater.uz`
+          await this.SmsService.sender({
+            mobile_phone: ownerMobilePhone,
+            message,
+            callback_url: 'https://level.livewater.uz',
+            from: '4546',
+          })
+
+          console.log(`SMS notification sent to ${ownerMobilePhone}`)
+        } catch (error) {
+          console.error(`Error processing device ${device._id}:`, error)
+          // Handle error, e.g., log it or perform alternative actions
+        }
+      }
     }
   }
 }
