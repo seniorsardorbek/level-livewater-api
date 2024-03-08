@@ -38,8 +38,6 @@ export class BasedataService {
           date_in_ms: { $gte: timestampDayAgo },
         })
         .lean()
-      console.log(data)
-      console.log(devices)
 
       this.processDevices(devices, data)
     } catch (error) {
@@ -415,9 +413,9 @@ export class BasedataService {
 
           // Send SMS notification
           const ownerMobilePhone = device?.owner?.mobil_phone
-          const message = `${device?.name || 'Device'} with ID ${
+          const message = `${device?.name || 'Qurilma'} ushbu IDli ${
             device?._id
-          } is not communicating with our server in the last 24 hours. Please address the issue. Details: https://level.livewater.uz`
+          } 24 soat ichida server bilan boglanmadi. Iltimos qo'llanmaga asosan xatolikni bartaraf eting. Details: https://level.livewater.uz`
           await this.SmsService.sender({
             mobile_phone: ownerMobilePhone,
             message,
@@ -428,7 +426,6 @@ export class BasedataService {
           console.log(`SMS notification sent to ${ownerMobilePhone}`)
         } catch (error) {
           console.error(`Error processing device ${device._id}:`, error)
-          // Handle error, e.g., log it or perform alternative actions
         }
       }
     }
