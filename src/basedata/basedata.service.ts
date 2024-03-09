@@ -1,7 +1,8 @@
 import { BadRequestException, Injectable, Res } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
+import { Cron, CronExpression } from '@nestjs/schedule'
 import { Response } from 'express'
-import { FlattenMaps, Model, ObjectId } from 'mongoose'
+import { Model } from 'mongoose'
 import { DataItem, DeviceFace } from 'src/_shared'
 import { ParamIdDto, QueryDto } from 'src/_shared/query.dto'
 import { CustomRequest, PaginationResponse } from 'src/_shared/response'
@@ -9,11 +10,10 @@ import { getDataFromDevice } from 'src/_shared/utils/passport.utils'
 import { formatTimestamp } from 'src/_shared/utils/utils'
 import { Device } from 'src/devices/Schema/Device'
 import * as XLSX from 'xlsx'
+import { SmsService } from '../sms/sms.service'
 import { Basedata } from './Schema/Basedatas'
 import { BasedataQueryDto } from './dto/basedata.query.dto'
 import { CreateBasedatumDto } from './dto/create-basedatum.dto'
-import { Cron, CronExpression } from '@nestjs/schedule'
-import { SmsService } from '../sms/sms.service'
 
 @Injectable()
 export class BasedataService {
@@ -45,6 +45,7 @@ export class BasedataService {
     }
   }
 
+// ! Malumotlarni saqlash
   async create (createBasedata: CreateBasedatumDto) {
     try {
       const device = await this.deviceModel.findOne({
@@ -120,7 +121,8 @@ export class BasedataService {
       throw new BadRequestException({ msg: "Keyinroq urinib ko'ring..." })
     }
   }
-
+   
+  // !Oxirgi qo'shilgan malumotlarni olish
   async lastData () {
     try {
       const now = new Date()
@@ -147,33 +149,8 @@ export class BasedataService {
       throw new BadRequestException({ msg: "Keyinroq urinib ko'ring..." })
     }
   }
-
-  async lastDataOperator (req: CustomRequest) {
-    try {
-      const now = new Date()
-      const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000)
-      const timestampOneHourAgo = oneHourAgo.getTime()
-      const data: DataItem[] = await this.basedataModel
-        .find({ date_in_ms: { $gte: timestampOneHourAgo } })
-        .populate('device', 'serie name')
-        .lean()
-      let uniqueSeriesMap = {}
-
-      data.forEach(item => {
-        const serie = item.device.serie
-        uniqueSeriesMap[serie] = item
-      })
-
-      let uniqueSeriesArray = Object.values(uniqueSeriesMap)
-      return uniqueSeriesArray
-    } catch (error) {
-      throw new BadRequestException({
-        msg: "Keyinroq urinib ko'ring...",
-        error,
-      })
-    }
-  }
-
+  
+  // ! Oper3ator uchun oxirgi qo'shilgan malumotlarni olish
   async operatorLastData (req: CustomRequest) {
     try {
       const owner = req.user.id
@@ -338,6 +315,7 @@ export class BasedataService {
       throw new BadRequestException({ msg: "Keyinroq urinib ko'ring..." })
     }
   }
+
   async operatorDeviceBaseDataXLSX (
     req: CustomRequest,
     { filter, page }: BasedataQueryDto,
@@ -395,7 +373,7 @@ export class BasedataService {
     }
   }
 
-  async processDevices (devices: DeviceFace[], data: DataItem[]) {
+  private async processDevices (devices: DeviceFace[], data: DataItem[]) {
     for (const device of devices) {
       const isWorking = data.some(
         basedata =>
