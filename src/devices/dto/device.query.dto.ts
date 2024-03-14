@@ -7,7 +7,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { ObjectId } from 'mongoose';
-import { Paginate } from 'src/_shared/query.dto';
+import { Paginate, QueryDto } from 'src/_shared/query.dto';
 
 class Filter {
   @ApiProperty({
@@ -19,17 +19,7 @@ class Filter {
   region: ObjectId;
 }
 
-export class DeviceQueryDto {
-  @ApiProperty({
-    title: 'Pagination options',
-    type: Paginate,
-  })
-  @IsOptional()
-  @IsObject()
-  @ValidateNested()
-  @Type(() => Paginate)
-  page?: Paginate;
-
+export class DeviceQueryDto extends  QueryDto {
   @ApiProperty({
     title: 'Filter options',
     type: Filter,

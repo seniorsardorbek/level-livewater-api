@@ -4,7 +4,6 @@ import { Model } from 'mongoose'
 import { ParamIdDto, QueryDto } from 'src/_shared/query.dto'
 import { CustomRequest, PaginationResponse } from 'src/_shared/response'
 import {
-  convertArrayToJSON,
   deleteFile,
   write,
   xlsxToArray,
@@ -13,7 +12,6 @@ import { Device } from './Schema/Device'
 import { CreateDeviceDto } from './dto/create-device.dto'
 import { DeviceQueryDto } from './dto/device.query.dto'
 import { UpdateDeviceDto } from './dto/update-device.dto'
-import { passport } from 'src/_shared'
 
 @Injectable()
 export class DevicesService {
@@ -50,14 +48,21 @@ export class DevicesService {
     }
   }
 
-  async findAll ({ page }: QueryDto): Promise<PaginationResponse<Device>> {
+  async findAll (req : CustomRequest , { page , filter }: DeviceQueryDto): Promise<PaginationResponse<Device>> {
     try {
       const { limit = 10, offset = 0 } = page || {}
 
       const total = await this.deviceModel.find().countDocuments()
-
+      const userRole = req.user.role
+      const userId = req.user.id
+      const query: any = {}
+      if (userRole === 'operator') {
+        query.owner = userId
+      }
+      console.log(query);
+      console.log(filter);
       const data = await this.deviceModel
-        .find()
+        .find({...query , ...filter})
         .populate([
           { path: 'region', select: 'name' },
           { path: 'owner', select: 'first_name last_name' },
@@ -74,44 +79,9 @@ export class DevicesService {
     }
   }
 
-  async regionAll ({
-    filter,
-  }: DeviceQueryDto): Promise<PaginationResponse<Device>> {
-    try {
-      const total = await this.deviceModel.find().countDocuments()
-      const data = await this.deviceModel.find(filter)
-      return { data, limit: 0, offset: 0, total }
-    } catch (error) {
-      throw new BadRequestException({
-        msg: "Keyinroq urinib ko'ring...",
-        error,
-      })
-    }
-  }
 
-  async oneUserDevices (
-    req: CustomRequest,
-    { page }: QueryDto
-  ): Promise<PaginationResponse<Device>> {
-    try {
-      const id = req.user.id
-      const { limit = 10, offset = 0 } = page || {}
-      const total = await this.deviceModel.find({ owner: id }).countDocuments()
-      const data = await this.deviceModel
-        .find({ owner: id })
-        .populate([{ path: 'region', select: 'name' }])
-        .limit(limit)
-        .skip(limit * offset)
-      return { data, limit, offset, total }
-    } catch (error) {
-      throw new BadRequestException({
-        msg: "Keyinroq urinib ko'ring...",
-        error,
-      })
-    }
-  }
 
-  findOne ({ id }: ParamIdDto) {
+  async findOne ({ id }: ParamIdDto) {
     try {
       return this.deviceModel.findById(id).populate([
         { path: 'region', select: 'name' },
@@ -173,7 +143,7 @@ export class DevicesService {
         { new: true }
       )
       if (updated) {
-        return { msg: 'Qurilma yangilandi.' , updated }
+        return { msg: 'Qurilma yangilandi.', updated }
       } else {
         throw new BadRequestException({ msg: 'Qurilmani yangilashda xatolik' })
       }

@@ -34,16 +34,7 @@ export class RegionsService {
     }
   }
 
-  async findOne ({ id }: ParamIdDto) {
-    try {
-      const regionWithDevices = await this.regionModel
-        .findById(id)
-        .populate('devicesCount')
-      return regionWithDevices
-    } catch (error) {
-      throw new BadRequestException({ msg: "Keyinroq urinib ko'ring..." })
-    }
-  }
+
 
   async update ({ id }: ParamIdDto, updateRegionDto: UpdateRegionDto) {
     try {
