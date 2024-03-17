@@ -59,8 +59,6 @@ export class DevicesService {
       if (userRole === 'operator') {
         query.owner = userId
       }
-      console.log(query);
-      console.log(filter);
       const data = await this.deviceModel
         .find({...query , ...filter})
         .populate([

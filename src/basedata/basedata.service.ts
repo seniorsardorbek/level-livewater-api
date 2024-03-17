@@ -55,7 +55,7 @@ export class BasedataService {
         throw new BadRequestException({ msg: 'Device not found!' })
       }
       if (!device.isWorking) {
-        this.deviceModel.findByIdAndUpdate(device._id, { isWorking: true })
+        await  this.deviceModel.findByIdAndUpdate(device._id, { isWorking: true })
       }
       const deviceLevel =
         createBasedata.level > 59
@@ -78,7 +78,7 @@ export class BasedataService {
       })
       return { msg: 'Malumot saqlandi!' }
     } catch (error) {
-      throw new BadRequestException({ msg: "Keyinroq urinib ko'ring..." })
+      throw new BadRequestException({ msg: "Keyinroq urinib ko'ring..." , error })
     }
   }
 
@@ -261,7 +261,6 @@ export class BasedataService {
           basedata.signal === 'good' &&
           basedata.device.toString() === device._id.toString()
       )
-      console.log(isWorking);
 
       if (!isWorking) {
         try {
