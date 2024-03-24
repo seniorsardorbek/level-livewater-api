@@ -58,11 +58,11 @@ export class BasedataService {
         await  this.deviceModel.findByIdAndUpdate(device._id, { isWorking: true })
       }
       const deviceLevel =
-        createBasedata.level > 59
+        Math.round(createBasedata.level > 59
           ? 59
           : createBasedata.level < 5
           ? 5
-          : createBasedata.level
+          : createBasedata.level)
       const date_in_ms = new Date().getTime()
       const signal = deviceLevel ? 'good' : 'nosignal'
       const { volume } = await getDataFromDevice(
