@@ -24,7 +24,7 @@ export class ServerdataService {
   @Cron(CronExpression.EVERY_HOUR)
   async create () {
     try {
-      const oneHourAgo = new Date(Date.now() - 40 * 60 * 1000)
+      const oneHourAgo = (new Date(Date.now() - 40 * 60 * 1000)).getTime()
       console.log(oneHourAgo , "oneHourAgo");
       const lastAdded = await this.basedataModel
         .find({ send_data_in_ms: { $gte: oneHourAgo } })
