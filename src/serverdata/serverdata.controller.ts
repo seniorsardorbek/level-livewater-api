@@ -23,6 +23,10 @@ export class ServerdataController {
   findAll (@Query() query: QueryDto) {
     return this.serverdataService.findAll(query)
   }
+  @Get("check")
+  check () {
+    return this.serverdataService.create()
+  }
 
   @SetRoles('admin')
   @UseGuards(IsLoggedIn, HasRole)
