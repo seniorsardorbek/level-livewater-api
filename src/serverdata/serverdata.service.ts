@@ -27,7 +27,7 @@ export class ServerdataService {
       const oneHourAgo = (new Date(Date.now() - 40 * 60 * 1000)).getTime()
       console.log(oneHourAgo , "oneHourAgo");
       const lastAdded = await this.basedataModel
-        .find({ send_data_in_ms: { $gte: oneHourAgo } })
+        .find({ date_in_ms: { $gte: oneHourAgo } })
         .lean()
         console.log(lastAdded , "lastAdded");
       const devices = await this.deviceModel.find().lean()
