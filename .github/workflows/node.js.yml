@@ -26,4 +26,4 @@ jobs:
     - run: npm ci
     - run: npm i
     - run: npm run build 
-    - run: pm2 restart levelApi
+    - run: pm2 restart level

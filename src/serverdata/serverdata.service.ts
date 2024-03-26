@@ -24,21 +24,17 @@ export class ServerdataService {
   @Cron(CronExpression.EVERY_HOUR)
   async create () {
     try {
-      const oneHourAgo = (new Date(Date.now() - 40 * 60 * 1000)).getTime()
-      console.log(oneHourAgo , "oneHourAgo");
+      const oneHourAgo = new Date(Date.now() - 40 * 60 * 1000).getTime()
       const lastAdded = await this.basedataModel
         .find({ date_in_ms: { $gte: oneHourAgo } })
         .lean()
-        console.log(lastAdded , "lastAdded");
       const devices = await this.deviceModel.find().lean()
 
-      console.log(devices , "devices");
       const date_in_ms = new Date().getTime()
       devices.map(async dev => {
         const basedata: Basedata = lastAdded
           .reverse()
           .find(basedata => basedata.device.toString() === dev._id.toString())
-          console.log(basedata ,  'basedata');
         if (basedata) {
           this.fetchData(dev, basedata, date_in_ms)
         } else {

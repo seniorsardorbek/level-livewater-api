@@ -15,7 +15,7 @@ async function bootstrap() {
   )
 
   const swaggerc = new DocumentBuilder()
-    .setTitle('Live Water (level) ')
+    .setTitle('Live Water (level-3) ')
     .setDescription('Documentation for live water')
     .setVersion('1.3')
     .build()
