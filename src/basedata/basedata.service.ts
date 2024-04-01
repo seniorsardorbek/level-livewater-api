@@ -271,10 +271,9 @@ export class BasedataService {
 
           // Send SMS notification
           const ownerMobilePhone = device?.owner?.mobil_phone
-          const message = `${device?.name || 'Qurilma'} obyektidagi ${
-            device?._id
-          } ID raqamiga ega qurilmangiz so‘nggi 24 soat ichida 
-          serverimizga ulana olmadi.  Iltimos qo'llanmaga asosan xatolikni bartaraf qiling.   https://level.livewater.uz`
+          const message = `'${device?.name || 'Qurilma'}' obyektidagi ${
+            device?.serie
+          } SERIA raqamiga ega qurilmangiz so‘nggi 24 soat ichida serverimizga ulana olmadi.  Iltimos qo'llanmaga asosan xatolikni bartaraf qiling.   https://level.livewater.uz`
           await this.SmsService.sender({
             mobile_phone: ownerMobilePhone,
             message,
