@@ -9,6 +9,8 @@ import { ServerdataService } from 'src/serverdata/serverdata.service'
 import { ScheduleModule } from '@nestjs/schedule'
 import { SmsService } from 'src/sms/sms.service'
 import { HttpModule } from '@nestjs/axios'
+import { MqttService } from 'src/mqtt/mqtt.service'
+import { MqttModule } from 'src/mqtt/mqtt.module'
 
 @Module({
   imports: [
@@ -19,8 +21,9 @@ import { HttpModule } from '@nestjs/axios'
     ]),
     ScheduleModule.forRoot(),
     HttpModule,
+    MqttModule
   ],
   controllers: [BasedataController],
-  providers: [BasedataService, SmsService],
+  providers: [BasedataService, SmsService ],
 })
 export class BasedataModule {}

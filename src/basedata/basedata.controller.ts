@@ -90,7 +90,10 @@ export class BasedataController {
   ) {
     return this.basedataService.findOneDevice(query, id)
   }
-
+  @Get('hkl')
+ hkld(){
+  return this.basedataService.hkl()
+ }
   @Get(':id')
   @ApiOperation({
     summary: 'id orqali olish',

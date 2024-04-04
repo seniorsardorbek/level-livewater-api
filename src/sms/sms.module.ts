@@ -1,16 +1,10 @@
-import { Module } from '@nestjs/common'
-import { SmsService } from './sms.service'
-import { SmsController } from './sms.controller'
 import { HttpModule } from '@nestjs/axios'
-import { ConfigModule } from '@nestjs/config'
+import { Module } from '@nestjs/common'
+import { SmsController } from './sms.controller'
+import { SmsService } from './sms.service'
 
 @Module({
-  imports: [
-    HttpModule,
-    ConfigModule.forRoot({
-      isGlobal: true,
-    }),
-  ],
+  imports: [HttpModule],
   controllers: [SmsController],
   exports: [SmsService],
   providers: [SmsService],

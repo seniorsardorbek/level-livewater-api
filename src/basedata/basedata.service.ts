@@ -14,14 +14,24 @@ import { SmsService } from '../sms/sms.service'
 import { Basedata } from './Schema/Basedatas'
 import { BasedataQueryDto } from './dto/basedata.query.dto'
 import { CreateBasedatumDto } from './dto/create-basedatum.dto'
+import { MqttService } from '../mqtt/mqtt.service'
 
 @Injectable()
 export class BasedataService {
   constructor (
     @InjectModel(Basedata.name) private basedataModel: Model<Basedata>,
     @InjectModel(Device.name) private deviceModel: Model<Device>,
-    private readonly SmsService: SmsService
-  ) {}
+    private readonly SmsService: SmsService,
+    private readonly MqttService: MqttService
+  ) {
+    this.MqttService.client.on('message', (topic, message) => {
+      if (message[0] === 1 && message[1] === 3) {
+        const num = (1870 - parseInt(message.toString('hex', 3, 5), 16)) / 10
+        const serie =  topic.split('/')[0]
+        this.create({serie , level : num})
+      }
+    })
+  }
 
   @Cron(CronExpression.EVERY_DAY_AT_4AM)
   async checkStatus () {
@@ -45,7 +55,17 @@ export class BasedataService {
     }
   }
 
-// ! Malumotlarni saqlash
+  hkl () {
+    this.MqttService.sendMessage(`869300038352476/down`)
+  }
+  @Cron("55 * * * *")
+  async askDataFromDevices () {
+    const devices: DeviceFace[] = await this.deviceModel.find().lean()
+    devices.map((device: DeviceFace) => {
+      return this.MqttService.sendMessage(`${device?.serie}/down`)
+    })
+  }
+  // ! Malumotlarni saqlash
   async create (createBasedata: CreateBasedatumDto) {
     try {
       const device = await this.deviceModel.findOne({
@@ -55,14 +75,17 @@ export class BasedataService {
         throw new BadRequestException({ msg: 'Device not found!' })
       }
       if (!device.isWorking) {
-        await  this.deviceModel.findByIdAndUpdate(device._id, { isWorking: true })
+        await this.deviceModel.findByIdAndUpdate(device._id, {
+          isWorking: true,
+        })
       }
-      const deviceLevel =
-        Math.round(createBasedata.level > 59
+      const deviceLevel = Math.round(
+        createBasedata.level > 59
           ? 59
           : createBasedata.level < 5
           ? 5
-          : createBasedata.level)
+          : createBasedata.level
+      )
       const date_in_ms = new Date().getTime()
       const signal = deviceLevel ? 'good' : 'nosignal'
       const { volume } = await getDataFromDevice(
@@ -78,16 +101,18 @@ export class BasedataService {
       })
       return { msg: 'Malumot saqlandi!' }
     } catch (error) {
-      throw new BadRequestException({ msg: "Keyinroq urinib ko'ring..." , error })
+      throw new BadRequestException({
+        msg: "Keyinroq urinib ko'ring...",
+        error,
+      })
     }
   }
 
   // ! Barcha ma'lumotlarni olish uchun
-  async findAll ({
-    page,
-    filter,
-    sort,
-  }: BasedataQueryDto ,  req : CustomRequest): Promise<PaginationResponse<Basedata>> {
+  async findAll (
+    { page, filter, sort }: BasedataQueryDto,
+    req: CustomRequest
+  ): Promise<PaginationResponse<Basedata>> {
     try {
       const { limit = 10, offset = 0 } = page || {}
       const { by = 'date_in_ms', order = 'desc' } = sort || {}
@@ -95,8 +120,8 @@ export class BasedataService {
       const query: any = {}
       const userRole = req.user.role
       const userId = req.user.id
-      if (userRole === 'operator'){
-        const devices = await this.deviceModel.find({ owner : userId }).lean()
+      if (userRole === 'operator') {
+        const devices = await this.deviceModel.find({ owner: userId }).lean()
         const devices_id = devices.map(device => device._id)
         query.device = { $in: devices_id }
       }
@@ -128,20 +153,20 @@ export class BasedataService {
       throw new BadRequestException({ msg: "Keyinroq urinib ko'ring..." })
     }
   }
-   
+
   // !Oxirgi qo'shilgan malumotlarni olish
-  async lastData ({ filter, page }: BasedataQueryDto , req: CustomRequest) {
+  async lastData ({ filter, page }: BasedataQueryDto, req: CustomRequest) {
     try {
       const userId = req.user.id
       const userRole = req.user.role
       const now = new Date()
       const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000)
       const timestampOneHourAgo = oneHourAgo.getTime()
-      const query : any = {
+      const query: any = {
         date_in_ms: { $gte: timestampOneHourAgo },
       }
-      if (userRole === 'operator'){
-        const devices = await this.deviceModel.find({ owner : userId }).lean()
+      if (userRole === 'operator') {
+        const devices = await this.deviceModel.find({ owner: userId }).lean()
         const devices_id = devices.map(device => device._id)
         query.device = { $in: devices_id }
       }
@@ -164,7 +189,6 @@ export class BasedataService {
       throw new BadRequestException({ msg: "Keyinroq urinib ko'ring..." })
     }
   }
-  
 
   //! Bitta qurilma ma'lumotlarini olish uchun
   async findOneDevice (
@@ -196,14 +220,18 @@ export class BasedataService {
     }
   }
 
-  async xlsx (req : CustomRequest ,{ filter, page }: BasedataQueryDto, @Res() res: Response) {
+  async xlsx (
+    req: CustomRequest,
+    { filter, page }: BasedataQueryDto,
+    @Res() res: Response
+  ) {
     try {
       const { start, end, device, region } = filter || {}
       const { limit = 1000 } = page || {}
       const query: any = {}
       const userId = req.user.id
-      if (req.user.id === 'operator'){
-        const devices = await this.deviceModel.find({ owner : userId }).lean()
+      if (req.user.id === 'operator') {
+        const devices = await this.deviceModel.find({ owner: userId }).lean()
         const devices_id = devices.map(device => device._id)
         query.device = { $in: devices_id }
       }
@@ -251,8 +279,6 @@ export class BasedataService {
       throw new BadRequestException({ msg: "Keyinroq urinib ko'ring..." })
     }
   }
-
- 
 
   private async processDevices (devices: DeviceFace[], data: DataItem[]) {
     for (const device of devices) {

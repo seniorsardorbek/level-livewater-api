@@ -1,13 +1,14 @@
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { Model } from 'mongoose'
-import { ParamIdDto, QueryDto } from 'src/_shared/query.dto'
+import { ParamIdDto } from 'src/_shared/query.dto'
 import { CustomRequest, PaginationResponse } from 'src/_shared/response'
 import {
   deleteFile,
   write,
   xlsxToArray,
 } from 'src/_shared/utils/passport.utils'
+import { MqttService } from 'src/mqtt/mqtt.service'
 import { Device } from './Schema/Device'
 import { CreateDeviceDto } from './dto/create-device.dto'
 import { DeviceQueryDto } from './dto/device.query.dto'
@@ -15,7 +16,19 @@ import { UpdateDeviceDto } from './dto/update-device.dto'
 
 @Injectable()
 export class DevicesService {
-  constructor (@InjectModel(Device.name) private deviceModel: Model<Device>) {}
+  constructor (
+    @InjectModel(Device.name) private deviceModel: Model<Device>,
+    private readonly MqttService: MqttService
+  ) {
+    this.deviceModel
+      .find()
+      .lean()
+      .then(devices => {
+        devices.map((device: any) => {
+          return this.MqttService.subscribe(`${device?.serie}/up`)
+        })
+      })
+  }
 
   async create (createDeviceDto: CreateDeviceDto, file: Express.Multer.File) {
     try {
@@ -39,6 +52,7 @@ export class DevicesService {
       }
 
       write(`./passports/${createDeviceDto.serie}.json`, data as any[])
+      this.MqttService.subscribe(`${createDeviceDto?.serie}/up`)
       return this.deviceModel.create(createDeviceDto)
     } catch (error) {
       throw new BadRequestException({
@@ -48,7 +62,10 @@ export class DevicesService {
     }
   }
 
-  async findAll (req : CustomRequest , { page , filter }: DeviceQueryDto): Promise<PaginationResponse<Device>> {
+  async findAll (
+    req: CustomRequest,
+    { page, filter }: DeviceQueryDto
+  ): Promise<PaginationResponse<Device>> {
     try {
       const { limit = 10, offset = 0 } = page || {}
 
@@ -60,7 +77,7 @@ export class DevicesService {
         query.owner = userId
       }
       const data = await this.deviceModel
-        .find({...query , ...filter})
+        .find({ ...query, ...filter })
         .populate([
           { path: 'region', select: 'name' },
           { path: 'owner', select: 'first_name last_name' },
@@ -76,8 +93,6 @@ export class DevicesService {
       })
     }
   }
-
-
 
   async findOne ({ id }: ParamIdDto) {
     try {
@@ -135,6 +150,10 @@ export class DevicesService {
         throw new BadRequestException({ msg: 'File is required!' })
       }
 
+
+      if(updateDeviceDto.serie){
+        this.MqttService.subscribe(`${updateDeviceDto?.serie}/up`)
+      }
       const updated = await this.deviceModel.findByIdAndUpdate(
         id,
         updateDeviceDto,
@@ -157,7 +176,8 @@ export class DevicesService {
     try {
       const removed = await this.deviceModel.findById(id)
       deleteFile('passports', `${removed.serie}.json`)
-      const deleted = await this.deviceModel.findByIdAndDelete(id)
+      const deleted = await this.deviceModel.findByIdAndDelete(id , {new : true})
+      this.MqttService.unsubscribe(`${deleted.serie}/up`)
       if (deleted) {
         return { msg: "Qurilma o'chirildi." }
       } else {

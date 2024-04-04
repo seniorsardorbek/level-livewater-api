@@ -16,11 +16,13 @@ import { Serverdata } from './Schema/Serverdata'
 export class ServerdataService {
   constructor (
     private httpService: HttpService,
+
     @InjectModel(Serverdata.name)
     private readonly serverdataModel: Model<Serverdata>,
     @InjectModel(Basedata.name) private readonly basedataModel: Model<Basedata>,
     @InjectModel(Device.name) private readonly deviceModel: Model<Device>
   ) {}
+  
   @Cron(CronExpression.EVERY_HOUR)
   async create () {
     try {
@@ -29,7 +31,6 @@ export class ServerdataService {
         .find({ date_in_ms: { $gte: oneHourAgo } })
         .lean()
       const devices = await this.deviceModel.find().lean()
-
       const date_in_ms = new Date().getTime()
       devices.map(async dev => {
         const basedata: Basedata = lastAdded
@@ -49,7 +50,10 @@ export class ServerdataService {
       })
       return {}
     } catch (error) {
-      throw new BadRequestException({ msg: "Keyinroq urinib ko'ring..." })
+      throw new BadRequestException({
+        msg: "Keyinroq urinib ko'ring...",
+        error,
+      })
     }
   }
 
