@@ -27,8 +27,8 @@ export class BasedataService {
     this.MqttService.client.on('message', (topic, message) => {
       if (message[0] === 1 && message[1] === 3) {
         const num = (1870 - parseInt(message.toString('hex', 3, 5), 16)) / 10
-        const serie =  topic.split('/')[0]
-        this.create({serie , level : num})
+        const serie = topic.split('/')[0]
+        this.create({ serie, level: num })
       }
     })
   }
@@ -58,7 +58,7 @@ export class BasedataService {
   hkl () {
     this.MqttService.sendMessage(`869300038352476/down`)
   }
-  @Cron("55 * * * *")
+  @Cron('55 * * * *')
   async askDataFromDevices () {
     const devices: DeviceFace[] = await this.deviceModel.find().lean()
     devices.map((device: DeviceFace) => {
@@ -145,7 +145,7 @@ export class BasedataService {
       const data = await this.basedataModel
         .find({ ...query })
         .sort({ [by]: order === 'desc' ? -1 : 1 })
-        .populate([{ path: 'device', select: 'serie name' }])
+        .populate([{ path: 'device', select: 'serie name contractor' }])
         .limit(limit)
         .skip(limit * offset)
       return { data, limit, offset, total }
@@ -172,7 +172,7 @@ export class BasedataService {
       }
       const data: DataItem[] = await this.basedataModel
         .find(query)
-        .populate([{ path: 'device', select: 'serie name' }])
+        .populate([{ path: 'device', select: 'serie name contractor' }])
         .lean()
       let uniqueSeriesMap = {}
 

@@ -1,9 +1,10 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { CreateSmDto, TotalDto } from './dto/create-sm.dto';
 import { SmsService } from './sms.service';
 import { SetRoles } from 'src/auth/set-roles.decorator';
 import { IsLoggedIn } from 'src/auth/is-loggin.guard';
 import { HasRole } from 'src/auth/has-roles.guard';
+import { QueryDto } from 'src/_shared/query.dto';
 
 @Controller('sms')
 export class SmsController {
@@ -28,6 +29,12 @@ export class SmsController {
   @Post('total')
   total(@Body() body : TotalDto) {
     return this.smsService.total(body);
+  }
+  // @SetRoles('admin')
+  // @UseGuards(IsLoggedIn, HasRole)
+  @Get('sended')
+  getSMS(@Query() query: QueryDto) {
+    return this.smsService.getSMS(query);
   }
   @SetRoles('admin')
   @UseGuards(IsLoggedIn, HasRole)

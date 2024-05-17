@@ -1,7 +1,7 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
-import { IsMongoId, IsNotEmpty, IsNumber, IsString } from 'class-validator';
-import { ObjectId } from 'mongoose';
+import { ApiProperty } from '@nestjs/swagger'
+import { Transform } from 'class-transformer'
+import { IsMongoId, IsNotEmpty, IsNumber, IsString } from 'class-validator'
+import { ObjectId } from 'mongoose'
 
 export class CreateDeviceDto {
   @ApiProperty({
@@ -10,7 +10,7 @@ export class CreateDeviceDto {
   })
   @IsNotEmpty()
   @IsString()
-  serie: string;
+  serie: string
 
   @ApiProperty({
     title: 'Name',
@@ -18,7 +18,7 @@ export class CreateDeviceDto {
   })
   @IsNotEmpty()
   @IsString()
-  name: string;
+  name: string
 
   @ApiProperty({
     title: 'Device Private Key (unique)',
@@ -26,7 +26,14 @@ export class CreateDeviceDto {
   })
   @IsNotEmpty()
   @IsString()
-  device_privet_key: string;
+  device_privet_key: string
+  @ApiProperty({
+    title: 'Device contractor (unique)',
+    example: 'Alisher Sadullayev',
+  })
+  @IsNotEmpty()
+  @IsString()
+  contractor: string
 
   @ApiProperty({
     title: 'Latitude',
@@ -35,7 +42,7 @@ export class CreateDeviceDto {
   @IsNotEmpty()
   @Transform(({ value }) => Number(value))
   @IsNumber()
-  lat: number;
+  lat: number
 
   @ApiProperty({
     title: 'Longitude',
@@ -44,7 +51,7 @@ export class CreateDeviceDto {
   @IsNotEmpty()
   @Transform(({ value }) => Number(value))
   @IsNumber()
-  long: number;
+  long: number
 
   @ApiProperty({
     title: 'Region ID (MongoDB ObjectId)',
@@ -52,7 +59,7 @@ export class CreateDeviceDto {
   })
   @IsNotEmpty()
   @IsMongoId()
-  region: ObjectId;
+  region: ObjectId
 
   @ApiProperty({
     title: 'Owner ID (MongoDB ObjectId)',
@@ -60,5 +67,5 @@ export class CreateDeviceDto {
   })
   @IsNotEmpty()
   @IsMongoId()
-  owner: ObjectId;
+  owner: ObjectId
 }

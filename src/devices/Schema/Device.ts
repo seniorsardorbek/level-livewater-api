@@ -28,6 +28,12 @@ export class Device {
     unique: true,
   })
   device_privet_key: string
+  
+  @Prop({
+    type: String,
+    required: true,
+  })
+  contractor: string
 
   @Prop({
     type: Number,
