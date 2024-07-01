@@ -69,13 +69,19 @@ export class DevicesService {
     try {
       const { limit = 10, offset = 0 } = page || {}
 
-      const total = await this.deviceModel.find().countDocuments()
       const userRole = req.user.role
       const userId = req.user.id
       const query: any = {}
       if (userRole === 'operator') {
         query.owner = userId
       }
+      const total = await this.deviceModel
+        .find({ ...query, ...filter })
+        .populate([
+          { path: 'region', select: 'name' },
+          { path: 'owner', select: 'first_name last_name' },
+        ])
+        .countDocuments()
       const data = await this.deviceModel
         .find({ ...query, ...filter })
         .populate([
@@ -150,8 +156,7 @@ export class DevicesService {
         throw new BadRequestException({ msg: 'File is required!' })
       }
 
-
-      if(updateDeviceDto.serie){
+      if (updateDeviceDto.serie) {
         this.MqttService.subscribe(`${updateDeviceDto?.serie}/up`)
       }
       const updated = await this.deviceModel.findByIdAndUpdate(
@@ -176,7 +181,9 @@ export class DevicesService {
     try {
       const removed = await this.deviceModel.findById(id)
       deleteFile('passports', `${removed.serie}.json`)
-      const deleted = await this.deviceModel.findByIdAndDelete(id , {new : true})
+      const deleted = await this.deviceModel.findByIdAndDelete(id, {
+        new: true,
+      })
       this.MqttService.unsubscribe(`${deleted.serie}/up`)
       if (deleted) {
         return { msg: "Qurilma o'chirildi." }
