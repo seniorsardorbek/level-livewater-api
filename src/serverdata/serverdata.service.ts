@@ -102,7 +102,7 @@ export class ServerdataService {
 
   fetchData (dev: Device, basedata: any, date_in_ms: number) {
     const { level, volume } = basedata
-    const url = 'http://94.228.112.211:2010'
+    const url = 'http://89.236.195.198:2010'
 
     const data: sendedDataFace = {
       code: dev.device_privet_key,
