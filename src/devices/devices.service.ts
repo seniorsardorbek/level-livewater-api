@@ -82,6 +82,7 @@ export class DevicesService {
           { path: 'owner', select: 'first_name last_name' },
         ])
         .countDocuments()
+        
       const data = await this.deviceModel
         .find({ ...query, ...filter })
         .populate([
