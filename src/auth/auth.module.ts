@@ -9,9 +9,7 @@ import config from 'src/_shared/config'
   imports: [
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     JwtModule.register({
-      global: true,
       secret: config.jwt.secret,
-      signOptions: { expiresIn: '7d' },
     }),
   ],
   controllers: [AuthController],

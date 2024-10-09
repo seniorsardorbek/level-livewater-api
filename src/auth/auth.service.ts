@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { InjectModel } from '@nestjs/mongoose'
-import { LoginDto } from './dto/login.dto'
+import { LoginDto, RefreshDto } from './dto/login.dto'
 import { Model } from 'mongoose'
 import { User } from 'src/users/Schema/Users'
 import * as bcrypt from 'bcryptjs'
@@ -29,12 +29,41 @@ export class AuthService {
       throw new UnauthorizedException('Username yoki parol xato')
     }
 
-    const token = this.jwtService.sign({
-      user: { id: existing._id, role: existing.role },
-    })
-    return { msg: 'Muvaffaqqiyatli kirdingiz!', token, data: existing }
+  const accsessToken = this.jwtService.sign(
+      {
+        id: existing._id,
+        role: existing.role,
+      },
+      { expiresIn: '1m' },
+    );
+    const refreshToken = this.jwtService.sign(
+      {
+        id: existing._id,
+        role: existing.role,
+      },
+      { expiresIn: '30d' },
+    );
+    return { msg: 'Muvaffaqqiyatli kirdingiz!', accsessToken, refreshToken };
+  }
+
+  async refreshAccessToken(body: RefreshDto) {
+    try {
+      const { refreshToken } = body;
+      const decoded = this.jwtService.verify(refreshToken, );
+
+      const payload = {
+        id: decoded.id,
+        role: decoded.role,
+      };
+      const newAccessToken = this.jwtService.sign(payload, { expiresIn: '1m' });
+
+      return { access_token: newAccessToken };
+    } catch (error) {
+     return {success : false}
+    }
   }
   async verifyWithToken(req: CustomRequest) {
+    console.log(req.user);
     const { id } = req.user
     const user = await this.userModel.findById(id).select('-password')
     if (!user) {
