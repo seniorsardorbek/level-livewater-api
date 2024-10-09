@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common'
 import { CustomRequest } from 'src/_shared/response'
 import { AuthService } from './auth.service'
-import { LoginDto } from './dto/login.dto'
+import { LoginDto, RefreshDto } from './dto/login.dto'
 import { IsLoggedIn } from './is-loggin.guard'
 
 @Controller('auth')
@@ -27,5 +27,9 @@ export class AuthController {
   @Get()
   verifyMe(@Req() req: CustomRequest) {
     return this.authService.verifyWithToken(req)
+  }
+  @Post('refresh')
+  async refreshToken(@Body() body: RefreshDto) {
+    return this.authService.refreshAccessToken(body);
   }
 }
